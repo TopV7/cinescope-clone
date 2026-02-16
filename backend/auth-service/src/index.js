@@ -3,10 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth';
-import './database'; // Инициализация базы данных
+import authRoutes from './routes/auth.js';
 
+// Загружаем .env ПЕРЕД всеми импортами
 dotenv.config();
+
+import './database.js'; // Инициализация базы данных
 
 const app = express();
 const PORT = process.env.PORT || 3001;
