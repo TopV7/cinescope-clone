@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const HomePage: React.FC = () => {
   return (
@@ -15,12 +16,18 @@ const HomePage: React.FC = () => {
               Наслаждайтесь новыми премьерами в комфортной атмосфере.
             </p>
             <div className="space-x-4">
-              <button className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors duration-200">
+              <Link 
+                to="/movies" 
+                className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors duration-200 inline-block"
+              >
                 Купить билет
-              </button>
-              <button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 rounded-lg text-lg font-semibold transition-colors duration-200">
+              </Link>
+              <Link 
+                to="/movies" 
+                className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 rounded-lg text-lg font-semibold transition-colors duration-200 inline-block"
+              >
                 Смотреть афишу
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -73,12 +80,15 @@ const HomePage: React.FC = () => {
                 <div className="h-64 bg-gray-300"></div>
                 <div className="p-4">
                   <h3 className="font-semibold mb-2">Название фильма {item}</h3>
-                  <p className="text-gray-600 text-sm mb-2">Краткое описание...</p>
+                  <p className="text-gray-600 text-sm mb-4">Краткое описание...</p>
                   <div className="flex justify-between items-center">
                     <span className="text-red-600 font-bold">₽500</span>
-                    <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                    <Link 
+                      to={`/movies/${item}`}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
+                    >
                       Подробнее
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

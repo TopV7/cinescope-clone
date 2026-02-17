@@ -1,5 +1,5 @@
-import sqlite3 from 'sqlite3';
-import path from 'path';
+const sqlite3 = require('sqlite3');
+const path = require('path');
 
 const dbPath = path.join(process.cwd(), 'database.sqlite');
 
@@ -30,4 +30,4 @@ function createTables() {
   });
 }
 
-export default db;
+module.exports = db;

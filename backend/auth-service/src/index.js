@@ -1,14 +1,11 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import dotenv from 'dotenv';
-import authRoutes from './routes/auth.js';
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
 
-// Загружаем .env ПЕРЕД всеми импортами
-dotenv.config();
-
-import './database.js'; // Инициализация базы данных
+const authRoutes = require('./routes/auth.js');
+const db = require('./database.js');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,4 +34,4 @@ app.listen(PORT, () => {
   console.log(`🔐 Auth endpoints: http://localhost:${PORT}/auth`);
 });
 
-export default app;
+module.exports = app;

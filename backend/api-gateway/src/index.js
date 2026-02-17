@@ -80,14 +80,20 @@ app.use((req, res, next) => {
   next();
 });
 
-// Swagger documentation (если включен)
-if (process.env.SWAGGER_ENABLED !== 'false') {
-  app.use('/api-docs', swaggerMiddleware, swaggerSetup);
-  console.log(`📚 Swagger documentation: http://localhost:${PORT}/api-docs`);
-}
+// Static files first (highest priority)
+app.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
+  fallthrough: true,
+  maxAge: '1d',
+  etag: true
+}));
 
-// Health check endpoint
-app.get('/health', healthCheckMiddleware, (req, res) => {
+// API Routes
+app.use('/api/auth', authProxy);
+app.use('/api/movies', moviesProxy);
+app.use('/api/payment', paymentProxy);
+
+// Gateway routes (API only)
+app.use('/health', healthCheckMiddleware, (req, res) => {
   res.json({
     status: 'OK',
     service: 'api-gateway',
@@ -98,12 +104,13 @@ app.get('/health', healthCheckMiddleware, (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api/auth', authProxy);
-app.use('/api/movies', moviesProxy);
-app.use('/api/payment', paymentProxy);
+// Swagger documentation (если включен)
+if (process.env.SWAGGER_ENABLED !== 'false') {
+  app.use('/api-docs', swaggerMiddleware, swaggerSetup);
+  console.log(`📚 Swagger documentation: http://localhost:${PORT}/api-docs`);
+}
 
-// Gateway routes
+// Gateway API routes
 app.use('/', healthCheckMiddleware, gatewayRoutes);
 
 // Error handling middleware

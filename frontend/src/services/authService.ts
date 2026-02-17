@@ -1,52 +1,176 @@
-import axios from 'axios';
-import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types/user';
+import { API_ENDPOINTS, getAuthHeaders, type ApiResponse } from './api';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// Types
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  name?: string;
+}
 
+export interface User {
+  id: number;
+  email: string;
+  name?: string;
+  created_at: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+  expiresIn: string;
+}
+
+// Auth Service
 export const authService = {
-  // Вход
-  login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
+  // Login user
+  async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
+    try {
+      const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.error || 'Login failed',
+        };
+      }
+
+      // Save token to localStorage
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+
+      return {
+        success: true,
+        data: data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
   },
 
-  // Регистрация
-  register: async (userData: RegisterRequest): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register', userData);
-    return response.data;
+  // Register user
+  async register(userData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
+    try {
+      const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.error || 'Registration failed',
+        };
+      }
+
+      // Save token to localStorage
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+
+      return {
+        success: true,
+        data: data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
   },
 
-  // Получить данные пользователя
-  getCurrentUser: async (token: string): Promise<User> => {
-    const response = await api.get('/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
+  // Get user profile
+  async getProfile(): Promise<ApiResponse<User>> {
+    try {
+      const response = await fetch(API_ENDPOINTS.AUTH.PROFILE, {
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.error || 'Failed to get profile',
+        };
+      }
+
+      return {
+        success: true,
+        data: data.user || data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
   },
 
-  // Выход
-  logout: (): void => {
+  // Logout user
+  logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },
 
-  // Проверить авторизацию
-  isAuthenticated: (): boolean => {
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
     const token = localStorage.getItem('token');
     return !!token;
   },
 
-  // Получить токен
-  getToken: (): string | null => {
+  // Get current user
+  getCurrentUser(): User | null {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  },
+
+  // Get token
+  getToken(): string | null {
     return localStorage.getItem('token');
   },
+
+  // Check auth service health
+  async checkHealth(): Promise<ApiResponse<any>> {
+    try {
+      const response = await fetch(API_ENDPOINTS.AUTH.HEALTH);
+      const data = await response.json();
+
+      return {
+        success: response.ok,
+        data: data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Health check failed',
+      };
+    }
+  },
 };
+
+export default authService;

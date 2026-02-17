@@ -1,7 +1,7 @@
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import db from '../database.js';
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const db = require('../database.js');
 
 const router = express.Router();
 
@@ -94,9 +94,9 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Получение профиля
-router.get('/profile', (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
+// Middleware для проверки токена
+function authenticateToken(req, res, next) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
     return res.status(401).json({ error: 'Token is required' });
@@ -104,8 +104,17 @@ router.get('/profile', (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    
-    db.get('SELECT id, email, created_at FROM users WHERE id = ?', [decoded.userId], (err, row) => {
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// Получение профиля пользователя
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    db.get('SELECT id, email, created_at FROM users WHERE id = ?', [req.user.userId], (err, row) => {
       if (err) {
         return res.status(500).json({ error: 'Database error' });
       }
@@ -117,8 +126,27 @@ router.get('/profile', (req, res) => {
       res.json({ user: row });
     });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 });
 
-export default router;
+// Получение текущего пользователя (алиас для /profile)
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    db.get('SELECT id, email, created_at FROM users WHERE id = ?', [req.user.userId], (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (!row) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({ user: row });
+    });
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+module.exports = router;
