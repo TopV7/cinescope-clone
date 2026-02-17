@@ -1,12 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { movieService, type Movie } from '../services/movieService';
+import { paymentService } from '../services/paymentService';
+import { authService } from '../services/authService';
 
 const MovieDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleBuyTicket = async () => {
+    if (!authService.isAuthenticated()) {
+      alert('Пожалуйста, войдите в систему');
+      return;
+    }
+
+    try {
+      const user = authService.getCurrentUser();
+      await paymentService.createPayment({
+        userId: user?.id || 0,
+        amount: movie?.rating || 100,
+        currency: 'RUB',
+        description: `Билет на фильм: ${movie?.title}`,
+        cardData: {
+          cardNumber: '4242424242424242',
+          cvv: '123',
+          expiryMonth: '12',
+          expiryYear: '25'
+        }
+      });
+      alert('Билет успешно куплен!');
+    } catch (e) {
+      alert('Ошибка покупки билета: ' + (e as Error).message);
+    }
+  };
+
+  const handleAddToFavorites = () => {
+    if (!authService.isAuthenticated()) {
+      alert('Пожалуйста, войдите в систему');
+      return;
+    }
+    alert(`Фильм "${movie?.title}" добавлен в избранное`);
+  };
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -126,10 +162,16 @@ const MovieDetailPage: React.FC = () => {
                 {movie.description}
               </p>
               <div className="mt-8 flex space-x-4">
-                <button className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold">
+                <button 
+                  onClick={handleBuyTicket}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold"
+                >
                   Купить билет
                 </button>
-                <button className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-semibold">
+                <button 
+                  onClick={handleAddToFavorites}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-semibold"
+                >
                   Добавить в избранное
                 </button>
               </div>

@@ -1,11 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { movieService, type Movie } from '../services/movieService';
+import { paymentService } from '../services/paymentService';
+import { authService } from '../services/authService';
 
 const MoviesPage: React.FC = () => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleBuyTicket = async (movie: Movie) => {
+    if (!authService.isAuthenticated()) {
+      alert('Пожалуйста, войдите в систему');
+      return;
+    }
+
+    try {
+      const user = authService.getCurrentUser();
+      await paymentService.createPayment({
+        userId: user?.id || 0,
+        amount: movie.rating || 100,
+        currency: 'RUB',
+        description: `Билет на фильм: ${movie.title}`,
+        cardData: {
+          cardNumber: '4242424242424242',
+          cvv: '123',
+          expiryMonth: '12',
+          expiryYear: '25'
+        }
+      });
+      alert('Билет успешно куплен!');
+    } catch (e) {
+      alert('Ошибка покупки билета: ' + (e as Error).message);
+    }
+  };
 
   useEffect(() => {
     const fetchMovies = async () => {
@@ -108,10 +136,7 @@ const MoviesPage: React.FC = () => {
                         Подробнее
                       </Link>
                       <button 
-                        onClick={() => {
-                          console.log('Купить билет для фильма:', movie.title);
-                          alert(`Покупка билета на фильм: ${movie.title}\nЦена: ₽${movie.rating}`);
-                        }}
+                        onClick={() => handleBuyTicket(movie)}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-200"
                       >
                         Купить билет

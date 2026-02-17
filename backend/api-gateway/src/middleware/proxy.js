@@ -23,7 +23,8 @@ export const moviesProxy = createProxyMiddleware({
   target: process.env.MOVIES_SERVICE_URL || 'http://localhost:3002',
   changeOrigin: true,
   pathRewrite: {
-    '^/api/movies': '', // Убираем /api/movies при проксировании
+    '^/api/movies$': '/',     // /api/movies -> /
+    '^/api/movies/': '/'      // /api/movies/... -> /...
   },
   onError: (err, req, res) => {
     console.error('Movies Service Proxy Error:', err.message);
