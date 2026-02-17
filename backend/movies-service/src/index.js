@@ -22,10 +22,7 @@ app.use(cors({
 app.use(morgan('combined'));
 app.use(express.json());
 
-// Routes
-app.use('/movies', moviesRoutes);
-
-// Health check
+// Health check (ДО routes!)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -34,6 +31,9 @@ app.get('/health', (req, res) => {
     version: '1.0.0'
   });
 });
+
+// Routes
+app.use('/', moviesRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

@@ -73,27 +73,17 @@ const HomePage: React.FC = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Популярные фильмы</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {/* Заглушки для фильмов */}
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-              <div key={item} className="bg-gray-100 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-200">
-                <div className="h-64 bg-gray-300"></div>
-                <div className="p-4">
-                  <h3 className="font-semibold mb-2">Название фильма {item}</h3>
-                  <p className="text-gray-600 text-sm mb-4">Краткое описание...</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-red-600 font-bold">₽500</span>
-                    <Link 
-                      to={`/movies/${item}`}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors duration-200"
-                    >
-                      Подробнее
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="text-center mb-8">
+            <Link 
+              to="/movies" 
+              className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors duration-200 inline-block"
+            >
+              Смотреть все фильмы 🎬
+            </Link>
           </div>
+          <p className="text-gray-600 text-center">
+            Откройте страницу с полным каталогом фильмов
+          </p>
         </div>
       </section>
     </div>

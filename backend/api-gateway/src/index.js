@@ -87,7 +87,7 @@ app.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
   etag: true
 }));
 
-// API Routes
+// API Routes (BEFORE gateway routes!)
 app.use('/api/auth', authProxy);
 app.use('/api/movies', moviesProxy);
 app.use('/api/payment', paymentProxy);
@@ -110,7 +110,7 @@ if (process.env.SWAGGER_ENABLED !== 'false') {
   console.log(`📚 Swagger documentation: http://localhost:${PORT}/api-docs`);
 }
 
-// Gateway API routes
+// Gateway API routes (AFTER API routes!)
 app.use('/', healthCheckMiddleware, gatewayRoutes);
 
 // Error handling middleware

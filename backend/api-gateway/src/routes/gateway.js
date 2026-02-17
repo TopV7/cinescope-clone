@@ -216,7 +216,7 @@ router.get('/routes', (req, res) => {
 });
 
 // Обработка статических файлов фронтенда (если собраны)
-router.use(express.static(path.join(__dirname, '../../../frontend-vite/dist'), {
+router.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
   fallthrough: true, // Если файл не найден, продолжаем обработку
   maxAge: '1d', // Кеширование на 1 день
   etag: true
@@ -230,7 +230,7 @@ router.use((req, res, next) => {
   }
   
   // Для всех остальных запросов отдаем index.html
-  const indexPath = path.join(__dirname, '../../../frontend-vite/dist/index.html');
+  const indexPath = path.join(__dirname, '../../../frontend/dist/index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
       console.error('Error serving index.html:', err);
