@@ -1,4 +1,24 @@
 services:
+  # PostgreSQL для Auth Service
+  auth-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - auth-data:/var/lib/postgresql/data
+      - ./backend/auth-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cinescope-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # API Gateway
   api-gateway:
     build:
@@ -18,9 +38,7 @@ services:
     networks:
       - cinescope-network
     depends_on:
-      - auth-service
-      - movies-service
-      - payment-service
+      - auth-db
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -40,10 +58,16 @@ services:
       - PORT=3001
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
       - JWT_EXPIRES_IN=24h
-    volumes:
-      - auth-data:/app/data
+      - DB_HOST=auth-db
+      - DB_PORT=5432
+      - DB_NAME=auth_db
+      - DB_USER=auth_user
+      - DB_PASSWORD=auth_password
     networks:
       - cinescope-network
+    depends_on:
+      auth-db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
@@ -51,7 +75,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Movies Service
+  # Movies Service (использует SQLite)
   movies-service:
     build:
       context: ./backend/movies-service
@@ -62,7 +86,7 @@ services:
       - NODE_ENV=production
       - PORT=3002
     volumes:
-      - movies-data:/app/data
+      - ./backend/movies-service/movies.sqlite:/app/data/movies.sqlite
     networks:
       - cinescope-network
     restart: unless-stopped
@@ -72,7 +96,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Payment Service
+  # Payment Service (использует SQLite)
   payment-service:
     build:
       context: ./backend/payment-service
@@ -88,7 +112,7 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
       - ENCRYPTION_KEY=your-32-character-encryption-key
     volumes:
-      - payment-data:/app/data
+      - ./backend/payment-service/payments.sqlite:/app/data/payments.sqlite
     networks:
       - cinescope-network
     restart: unless-stopped
@@ -113,10 +137,6 @@ services:
 
 volumes:
   auth-data:
-    driver: local
-  movies-data:
-    driver: local
-  payment-data:
     driver: local
 
 networks:

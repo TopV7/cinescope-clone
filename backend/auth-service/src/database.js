@@ -1,33 +1,53 @@
-const sqlite3 = require('sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
 
-const dbPath = path.join(process.cwd(), 'database.sqlite');
+// Конфигурация подключения к PostgreSQL
+const pool = new Pool({
+  host: process.env.DB_HOST || 'auth-db',  // ✅ Имя сервиса из docker-compose
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'auth_db',
+  user: process.env.DB_USER || 'auth_user',
+  password: process.env.DB_PASSWORD || 'auth_password',
+  max: 20, // максимальное количество соединений
+  idleTimeoutMillis: 30000, // время ожидания простоя
+  connectionTimeoutMillis: 2000, // время ожидания подключения
+});
 
-const db = new sqlite3.Database(dbPath, (err) => {
+// Проверяем подключение
+pool.connect((err, client, release) => {
   if (err) {
-    console.error('Error opening database:', err.message);
+    console.error('Error connecting to PostgreSQL:', err.message);
   } else {
-    console.log('✅ Connected to SQLite database');
-    createTables();
+    console.log('✅ Connected to PostgreSQL database');
+    console.log(`📊 Database: ${process.env.DB_NAME || 'auth_db'}`);
+    console.log(`🌐 Host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}`);
+    release();
   }
 });
 
-function createTables() {
-  // Создаем таблицу пользователей
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `, (err) => {
-    if (err) {
-      console.error('Error creating users table:', err.message);
-    } else {
-      console.log('✅ Users table created or already exists');
-    }
+// Функция для выполнения запросов
+const query = (text, params) => {
+  return new Promise((resolve, reject) => {
+    pool.query(text, params, (err, result) => {
+      if (err) {
+        console.error('Database query error:', err.message);
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
   });
-}
+};
 
-module.exports = db;
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('🔄 Closing PostgreSQL connection pool...');
+  pool.end(() => {
+    console.log('✅ PostgreSQL connection pool closed');
+    process.exit(0);
+  });
+});
+
+export {
+  query,
+  pool
+};

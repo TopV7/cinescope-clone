@@ -1,11 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-require('dotenv').config();
-
-const authRoutes = require('./routes/auth.js');
-const db = require('./database.js');
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
+import db from './database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,11 +13,20 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(cors());
 app.use(morgan('combined'));
+
+// JSON parser ДО логирования
 app.use(express.json());
+
+// Логирование всех запросов
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
 
 // Routes
 app.use('/auth', authRoutes);
 
+// Health endpoint
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -34,4 +42,4 @@ app.listen(PORT, () => {
   console.log(`🔐 Auth endpoints: http://localhost:${PORT}/auth`);
 });
 
-module.exports = app;
+export default app;
