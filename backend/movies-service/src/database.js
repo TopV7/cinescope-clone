@@ -45,7 +45,7 @@ function addSampleMovies() {
       description: 'A thief who steals corporate secrets through dream-sharing technology.',
       duration: 148,
       rating: 8.8,
-      poster_url: 'https://example.com/inception.jpg',
+      poster_url: 'https://picsum.photos/seed/inception/300/450.jpg',
       genre: 'Sci-Fi',
       release_year: 2010
     },
@@ -54,7 +54,7 @@ function addSampleMovies() {
       description: 'Batman faces the Joker in a battle for Gotham City.',
       duration: 152,
       rating: 9.0,
-      poster_url: 'https://example.com/dark-knight.jpg',
+      poster_url: 'https://picsum.photos/seed/darkknight/300/450.jpg',
       genre: 'Action',
       release_year: 2008
     },
@@ -63,7 +63,7 @@ function addSampleMovies() {
       description: 'A team of explorers travel through a wormhole in space.',
       duration: 169,
       rating: 8.6,
-      poster_url: 'https://example.com/interstellar.jpg',
+      poster_url: 'https://picsum.photos/seed/interstellar/300/450.jpg',
       genre: 'Sci-Fi',
       release_year: 2014
     }

@@ -38,12 +38,18 @@ const Header: React.FC = () => {
 
           {/* Кнопки входа/регистрации */}
           <div className="flex items-center space-x-4">
-            <button className="text-gray-300 hover:text-white transition-colors duration-200">
+            <Link 
+              to="/login"
+              className="text-gray-300 hover:text-white transition-colors duration-200"
+            >
               Вход
-            </button>
-            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+            </Link>
+            <Link 
+              to="/register"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+            >
               Регистрация
-            </button>
+            </Link>
           </div>
         </div>
       </div>
