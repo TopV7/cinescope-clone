@@ -1,13 +1,18 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const dbPath = path.join(process.cwd(), 'payments.sqlite');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const dbPath = path.join(__dirname, '../../data/payments.sqlite');
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
   } else {
     console.log('✅ Connected to SQLite database');
+    console.log(`📂 Database path: ${dbPath}`);
     createTables();
   }
 });
@@ -19,6 +24,8 @@ function createTables() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       amount REAL NOT NULL,
+      original_amount REAL NOT NULL,
+      commission_amount REAL DEFAULT 0,
       currency TEXT DEFAULT 'USD',
       status TEXT DEFAULT 'pending',
       card_last_four TEXT,
@@ -43,7 +50,9 @@ function addSamplePayments() {
   const samplePayments = [
     {
       user_id: 1,
-      amount: 15.99,
+      amount: 16.39,
+      original_amount: 15.99,
+      commission_amount: 0.40,
       currency: 'USD',
       status: 'completed',
       card_last_four: '1234',
@@ -53,7 +62,9 @@ function addSamplePayments() {
     },
     {
       user_id: 2,
-      amount: 12.50,
+      amount: 12.82,
+      original_amount: 12.50,
+      commission_amount: 0.32,
       currency: 'USD',
       status: 'completed',
       card_last_four: '5678',
@@ -63,7 +74,9 @@ function addSamplePayments() {
     },
     {
       user_id: 1,
-      amount: 18.00,
+      amount: 18.45,
+      original_amount: 18.00,
+      commission_amount: 0.45,
       currency: 'USD',
       status: 'pending',
       card_last_four: '9012',
@@ -75,11 +88,13 @@ function addSamplePayments() {
 
   samplePayments.forEach(payment => {
     db.run(`
-      INSERT OR IGNORE INTO payments (user_id, amount, currency, status, card_last_four, transaction_id, payment_method, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO payments (user_id, amount, original_amount, commission_amount, currency, status, card_last_four, transaction_id, payment_method, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       payment.user_id,
       payment.amount,
+      payment.original_amount,
+      payment.commission_amount,
       payment.currency,
       payment.status,
       payment.card_last_four,

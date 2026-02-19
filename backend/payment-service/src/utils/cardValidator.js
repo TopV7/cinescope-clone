@@ -12,12 +12,12 @@ export function validateCardNumber(cardNumber) {
 
   // Алгоритм Луна
   let sum = 0;
-  let isEven = false;
+  let isSecondDigit = false; // начинаем с последней цифры
   
   for (let i = cleaned.length - 1; i >= 0; i--) {
     let digit = parseInt(cleaned[i]);
     
-    if (isEven) {
+    if (isSecondDigit) {
       digit *= 2;
       if (digit > 9) {
         digit -= 9;
@@ -25,7 +25,7 @@ export function validateCardNumber(cardNumber) {
     }
     
     sum += digit;
-    isEven = !isEven;
+    isSecondDigit = !isSecondDigit;
   }
   
   const isValid = sum % 10 === 0;
@@ -40,23 +40,23 @@ export function validateCardNumber(cardNumber) {
 export function getCardType(cardNumber) {
   const cleaned = cardNumber.replace(/\D/g, '');
   
-  // Visa
-  if (/^4/.test(cleaned)) {
-    return 'visa';
-  }
-  
-  // MasterCard
-  if (/^5[1-5]/.test(cleaned)) {
-    return 'mastercard';
-  }
-  
-  // American Express
-  if (/^3[47]/.test(cleaned)) {
+  // American Express (15 цифр)
+  if (/^3[47]/.test(cleaned) && cleaned.length === 15) {
     return 'amex';
   }
   
-  // Discover
-  if (/^6(?:011|5[0-9]{2})/.test(cleaned)) {
+  // Visa (13 или 16 цифр)
+  if (/^4/.test(cleaned) && (cleaned.length === 13 || cleaned.length === 16)) {
+    return 'visa';
+  }
+  
+  // MasterCard (16 цифр)
+  if (/^5[1-5]/.test(cleaned) && cleaned.length === 16) {
+    return 'mastercard';
+  }
+  
+  // Discover (16 цифр)
+  if (/^6(?:011|5[0-9]{2})/.test(cleaned) && cleaned.length === 16) {
     return 'discover';
   }
   
@@ -118,23 +118,32 @@ export function generateTransactionId() {
 export function validateCard(cardData) {
   const { cardNumber, cvv, expiryMonth, expiryYear } = cardData;
   
+  const cardType = getCardType(cardNumber);
+  const cardNumberValidation = validateCardNumber(cardNumber);
+  const cvvValidation = validateCVV(cvv, cardType);
+  const expiryValidation = validateExpiry(expiryMonth, expiryYear);
+  
   const results = {
-    cardNumber: validateCardNumber(cardNumber),
-    cardType: getCardType(cardNumber),
-    cvv: validateCVV(cvv, getCardType(cardNumber)),
-    expiry: validateExpiry(expiryMonth, expiryYear),
+    cardNumber: cardNumberValidation,
+    cardType: cardType,
+    cvv: cvvValidation,
+    expiry: expiryValidation,
     maskedNumber: maskCardNumber(cardNumber)
   };
   
-  const isValid = Object.values(results).every(result => 
-    typeof result === 'string' || result.valid
-  );
+  const isValid = cardNumberValidation.valid && 
+                  cvvValidation.valid && 
+                  expiryValidation.valid &&
+                  cardType !== 'unknown';
   
   return {
     valid: isValid,
     results,
-    errors: Object.values(results)
-      .filter(result => result.error)
-      .map(result => result.error)
+    errors: [
+      cardNumberValidation.error,
+      cvvValidation.error,
+      expiryValidation.error,
+      cardType === 'unknown' ? 'Unknown card type' : null
+    ].filter(error => error !== null)
   };
 }

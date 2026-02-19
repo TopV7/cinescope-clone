@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../database.js';
 import { validateCard, generateTransactionId } from '../utils/cardValidator.js';
+import { authenticateToken, requireOwnership } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.post('/validate-card', (req, res) => {
 });
 
 // Создание платежа
-router.post('/create', async (req, res) => {
+router.post('/create', authenticateToken, async (req, res) => {
   const { 
     userId, 
     amount, 
@@ -67,37 +68,52 @@ router.post('/create', async (req, res) => {
     });
   }
 
+  // Расчет комиссии (2.5% + фиксированная комиссия $0.30)
+  const commissionRate = 0.025; // 2.5%
+  const fixedCommission = 0.30; // $0.30
+  const commissionAmount = (amount * commissionRate) + fixedCommission;
+  const totalAmount = amount + commissionAmount;
+
   // Генерация transaction ID
   const transactionId = generateTransactionId();
   const cardLastFour = cardValidation.results.maskedNumber.slice(-4);
 
   // Имитация обработки платежа (в реальном проекте здесь был бы вызов платежного шлюза)
-  setTimeout(() => {
-    // Случайный результат для демонстрации
-    const isSuccess = Math.random() > 0.1; // 90% успех
-    const status = isSuccess ? 'completed' : 'failed';
-    const failureReason = isSuccess ? null : 'Insufficient funds';
+  setTimeout(async () => {
+    try {
+      // Случайный результат для демонстрации
+      const isSuccess = Math.random() > 0.1; // 90% успех
+      const status = isSuccess ? 'completed' : 'failed';
+      const failureReason = isSuccess ? null : 'Insufficient funds';
 
-    db.run(`
-      INSERT INTO payments (user_id, amount, currency, status, card_last_four, transaction_id, payment_method, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      userId,
-      amount,
-      currency,
-      status,
-      cardLastFour,
-      transactionId,
-      'credit_card',
-      description || 'Movie ticket purchase'
-    ], function(err) {
-      if (err) {
-        console.error('Error creating payment:', err);
-        return;
-      }
-
-      console.log(`Payment ${status}: ${transactionId} for user ${userId}, amount $${amount}`);
-    });
+      await new Promise((resolve, reject) => {
+        db.run(`
+          INSERT INTO payments (user_id, amount, original_amount, commission_amount, currency, status, card_last_four, transaction_id, payment_method, description)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          userId,
+          totalAmount, // Сохраняем полную сумму с комиссией
+          amount, // Оригинальная сумма
+          commissionAmount, // Комиссия
+          currency,
+          status,
+          cardLastFour,
+          transactionId,
+          'credit_card',
+          description || 'Movie ticket purchase'
+        ], function(err) {
+          if (err) {
+            console.error('Error creating payment:', err);
+            reject(err);
+          } else {
+            console.log(`Payment ${status}: ${transactionId} for user ${userId}, amount $${totalAmount} (incl. $${commissionAmount.toFixed(2)} commission)`);
+            resolve(this.lastID);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Payment processing failed:', error);
+    }
   }, 2000); // 2 секунды имитация обработки
 
   // Сразу возвращаем ответ с pending статусом
@@ -105,7 +121,9 @@ router.post('/create', async (req, res) => {
     message: 'Payment processing initiated',
     transactionId,
     status: 'pending',
-    amount,
+    originalAmount: amount,
+    commissionAmount: commissionAmount.toFixed(2),
+    totalAmount: totalAmount,
     currency,
     cardType: cardValidation.results.cardType,
     maskedCardNumber: cardValidation.results.maskedNumber,
@@ -114,7 +132,7 @@ router.post('/create', async (req, res) => {
 });
 
 // Проверка статуса платежа
-router.get('/status/:transactionId', (req, res) => {
+router.get('/status/:transactionId', authenticateToken, async (req, res) => {
   const { transactionId } = req.params;
 
   db.get(
@@ -133,6 +151,8 @@ router.get('/status/:transactionId', (req, res) => {
         transactionId: payment.transaction_id,
         status: payment.status,
         amount: payment.amount,
+        originalAmount: payment.original_amount,
+        commissionAmount: payment.commission_amount,
         currency: payment.currency,
         createdAt: payment.created_at,
         updatedAt: payment.updated_at,
@@ -144,7 +164,7 @@ router.get('/status/:transactionId', (req, res) => {
 });
 
 // История платежей пользователя
-router.get('/history/:userId', (req, res) => {
+router.get('/history/:userId', authenticateToken, requireOwnership, async (req, res) => {
   const { userId } = req.params;
   const { page = 1, limit = 10, status } = req.query;
 
@@ -185,6 +205,8 @@ router.get('/history/:userId', (req, res) => {
         payments: payments.map(p => ({
           transactionId: p.transaction_id,
           amount: p.amount,
+          originalAmount: p.original_amount,
+          commissionAmount: p.commission_amount,
           currency: p.currency,
           status: p.status,
           cardLastFour: p.card_last_four,
@@ -204,7 +226,7 @@ router.get('/history/:userId', (req, res) => {
 });
 
 // Возврат платежа
-router.post('/refund', (req, res) => {
+router.post('/refund', authenticateToken, async (req, res) => {
   const { transactionId, reason } = req.body;
 
   if (!transactionId) {
@@ -232,11 +254,13 @@ router.post('/refund', (req, res) => {
       const refundTransactionId = generateTransactionId();
       
       db.run(`
-        INSERT INTO payments (user_id, amount, currency, status, card_last_four, transaction_id, payment_method, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO payments (user_id, amount, original_amount, commission_amount, currency, status, card_last_four, transaction_id, payment_method, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         payment.user_id,
         -payment.amount, // Отрицательная сумма для возврата
+        -payment.original_amount, // Возврат оригинальной суммы
+        -payment.commission_amount, // Возврат комиссии
         payment.currency,
         'refunded',
         payment.card_last_four,
@@ -259,6 +283,8 @@ router.post('/refund', (req, res) => {
           originalTransactionId: transactionId,
           refundTransactionId,
           refundedAmount: payment.amount,
+          refundedOriginalAmount: payment.original_amount,
+          refundedCommissionAmount: payment.commission_amount,
           currency: payment.currency,
           reason: reason || 'Customer request'
         });
@@ -268,13 +294,15 @@ router.post('/refund', (req, res) => {
 });
 
 // Получение статистики платежей
-router.get('/stats', (req, res) => {
+router.get('/stats', authenticateToken, async (req, res) => {
   const { startDate, endDate } = req.query;
 
   let query = `
     SELECT 
       COUNT(*) as totalTransactions,
       SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) as totalRevenue,
+      SUM(CASE WHEN status = 'completed' THEN original_amount ELSE 0 END) as totalOriginalRevenue,
+      SUM(CASE WHEN status = 'completed' THEN commission_amount ELSE 0 END) as totalCommission,
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pendingTransactions,
       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failedTransactions,
       AVG(amount) as averageTransactionAmount
@@ -306,6 +334,8 @@ router.get('/stats', (req, res) => {
       statistics: {
         totalTransactions: stats.totalTransactions || 0,
         totalRevenue: stats.totalRevenue || 0,
+        totalOriginalRevenue: stats.totalOriginalRevenue || 0,
+        totalCommission: stats.totalCommission || 0,
         pendingTransactions: stats.pendingTransactions || 0,
         failedTransactions: stats.failedTransactions || 0,
         averageTransactionAmount: stats.averageTransactionAmount || 0

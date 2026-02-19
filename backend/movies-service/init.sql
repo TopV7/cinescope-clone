@@ -1,37 +1,37 @@
--- Создаем таблицы для Movies Service
+-- Создаем таблицы для Movies Service (SQLite compatible)
 CREATE TABLE IF NOT EXISTS movies (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
     description TEXT,
     duration INTEGER, -- в минутах
-    genre VARCHAR(100),
-    release_date DATE,
-    rating DECIMAL(3,1) DEFAULT 0.0,
-    poster_url VARCHAR(500),
-    trailer_url VARCHAR(500),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    genre TEXT,
+    release_date TEXT,
+    rating REAL DEFAULT 0.0,
+    poster_url TEXT,
+    trailer_url TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS movie_sessions (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     movie_id INTEGER REFERENCES movies(id) ON DELETE CASCADE,
     hall_number INTEGER NOT NULL,
-    session_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
+    session_time TEXT NOT NULL,
+    price REAL NOT NULL,
     available_seats INTEGER NOT NULL,
     total_seats INTEGER NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS seats (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id INTEGER REFERENCES movie_sessions(id) ON DELETE CASCADE,
     row_number INTEGER NOT NULL,
     seat_number INTEGER NOT NULL,
-    is_reserved BOOLEAN DEFAULT FALSE,
-    reservation_time TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    is_reserved INTEGER DEFAULT 0, -- 0 = false, 1 = true
+    reservation_time TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
 );
 
 -- Создаем индексы для производительности
@@ -42,15 +42,10 @@ CREATE INDEX IF NOT EXISTS idx_movie_sessions_time ON movie_sessions(session_tim
 CREATE INDEX IF NOT EXISTS idx_seats_session_id ON seats(session_id);
 CREATE INDEX IF NOT EXISTS idx_seats_reserved ON seats(is_reserved);
 
--- Добавляем триггер для обновления updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+-- Добавляем триггер для обновления updated_at (SQLite compatible)
+CREATE TRIGGER IF NOT EXISTS update_movies_updated_at 
+    AFTER UPDATE ON movies 
+    FOR EACH ROW 
 BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
+    UPDATE movies SET updated_at = datetime('now') WHERE id = NEW.id;
 END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_movies_updated_at 
-    BEFORE UPDATE ON movies 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

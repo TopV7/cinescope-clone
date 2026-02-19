@@ -4,55 +4,123 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 export const authProxy = createProxyMiddleware({
   target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
   changeOrigin: true,
+  timeout: 30000,
+  proxyTimeout: 30000,
   pathRewrite: {
-    '^/api/auth': '', // Убираем /api/auth при проксировании
+    '^/api/auth': '/auth', // /api/auth/login -> /auth/login
   },
   onError: (err, req, res) => {
     console.error('Auth Service Proxy Error:', err.message);
-    res.status(503).json({
-      error: 'Auth Service unavailable',
-      message: 'Authentication service is temporarily unavailable'
-    });
+    console.error('Full error:', err);
+    if (!res.headersSent) {
+      if (err.code === 'ECONNREFUSED') {
+        res.status(503).json({
+          error: 'Auth Service unavailable',
+          message: 'Authentication service is not running or not reachable'
+        });
+      } else if (err.code === 'ETIMEDOUT') {
+        res.status(504).json({
+          error: 'Auth Service timeout',
+          message: 'Authentication service took too long to respond'
+        });
+      } else {
+        res.status(502).json({
+          error: 'Auth Service error',
+          message: 'Authentication service encountered an error'
+        });
+      }
+    }
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`🔄 Proxying to Auth Service: ${req.method} ${req.url}`);
+
+    if (req.body && Object.keys(req.body).length) {
+      const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Type', 'application/json');
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
+    }
+  },
+  
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ Auth Service Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);
+  },
+  onProxyReqWs: (proxyReq, req, socket, options, head) => {
+    console.log('🔄 Proxying WebSocket to Auth Service');
   }
 });
 
 export const moviesProxy = createProxyMiddleware({
   target: process.env.MOVIES_SERVICE_URL || 'http://localhost:3002',
   changeOrigin: true,
+  timeout: 30000,
+  proxyTimeout: 30000,
   pathRewrite: {
-    '^/api/movies$': '/',     // /api/movies -> /
-    '^/api/movies/': '/'      // /api/movies/... -> /...
+    '^/api/movies': '/', // Отрезаем всё и оставляем только корень
   },
   onError: (err, req, res) => {
     console.error('Movies Service Proxy Error:', err.message);
-    res.status(503).json({
-      error: 'Movies Service unavailable',
-      message: 'Movies service is temporarily unavailable'
-    });
+    if (!res.headersSent) {
+      if (err.code === 'ECONNREFUSED') {
+        res.status(503).json({
+          error: 'Movies Service unavailable',
+          message: 'Movies service is not running or not reachable'
+        });
+      } else if (err.code === 'ETIMEDOUT') {
+        res.status(504).json({
+          error: 'Movies Service timeout',
+          message: 'Movies service took too long to respond'
+        });
+      } else {
+        res.status(502).json({
+          error: 'Movies Service error',
+          message: 'Movies service encountered an error'
+        });
+      }
+    }
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`🔄 Proxying to Movies Service: ${req.method} ${req.url}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ Movies Service Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);
   }
 });
 
 export const paymentProxy = createProxyMiddleware({
   target: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3003',
   changeOrigin: true,
+  timeout: 30000,
+  proxyTimeout: 30000,
   pathRewrite: {
-    '^/api/payment': '', // Убираем /api/payment при проксировании
+    '^/api/payment': '/payment', // /api/payment/process -> /payment/process
   },
   onError: (err, req, res) => {
     console.error('Payment Service Proxy Error:', err.message);
-    res.status(503).json({
-      error: 'Payment Service unavailable',
-      message: 'Payment service is temporarily unavailable'
-    });
+    if (!res.headersSent) {
+      if (err.code === 'ECONNREFUSED') {
+        res.status(503).json({
+          error: 'Payment Service unavailable',
+          message: 'Payment service is not running or not reachable'
+        });
+      } else if (err.code === 'ETIMEDOUT') {
+        res.status(504).json({
+          error: 'Payment Service timeout',
+          message: 'Payment service took too long to respond'
+        });
+      } else {
+        res.status(502).json({
+          error: 'Payment Service error',
+          message: 'Payment service encountered an error'
+        });
+      }
+    }
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`🔄 Proxying to Payment Service: ${req.method} ${req.url}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ Payment Service Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);
   }
 });
 

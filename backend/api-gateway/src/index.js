@@ -36,8 +36,7 @@ app.use(cors({
 }));
 
 app.use(morgan('combined'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json());
 
 // Rate limiting middleware (простая реализация)
 const rateLimit = {};
@@ -80,17 +79,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static files first (highest priority)
+// API Routes (BEFORE static files!)
+app.use('/api/auth', authProxy);
+app.use('/login', authProxy); // Временный роут для совместимости
+app.use('/api/movies', moviesProxy);
+app.use('/api/payment', paymentProxy);
+
+// Static files (AFTER API routes!)
 app.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
   fallthrough: true,
   maxAge: '1d',
   etag: true
 }));
-
-// API Routes (BEFORE gateway routes!)
-app.use('/api/auth', authProxy);
-app.use('/api/movies', moviesProxy);
-app.use('/api/payment', paymentProxy);
 
 // Gateway routes (API only)
 app.use('/health', healthCheckMiddleware, (req, res) => {

@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
-import db from './database.js';
+import './database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

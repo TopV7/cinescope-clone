@@ -38,7 +38,9 @@ services:
     networks:
       - cinescope-network
     depends_on:
-      - auth-db
+      - auth-service
+      - movies-service
+      - payment-service
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -87,7 +89,7 @@ services:
       - NODE_ENV=production
       - PORT=3002
     volumes:
-      - ./backend/movies-service/movies.sqlite:/app/data/movies.sqlite
+      - movies-data:/app/data
     networks:
       - cinescope-network
     restart: unless-stopped
@@ -111,9 +113,10 @@ services:
       - PAYMENT_GATEWAY_API_KEY=your-payment-gateway-api-key
       - PAYMENT_GATEWAY_SECRET=your-payment-gateway-secret
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - DB_PATH=/app/data/payments.sqlite
       - ENCRYPTION_KEY=your-32-character-encryption-key
     volumes:
-      - ./backend/payment-service/payments.sqlite:/app/data/payments.sqlite
+      - payments-data:/app/data
     networks:
       - cinescope-network
     restart: unless-stopped
@@ -138,6 +141,10 @@ services:
 
 volumes:
   auth-data:
+    driver: local
+  movies-data:
+    driver: local
+  payments-data:
     driver: local
 
 networks:

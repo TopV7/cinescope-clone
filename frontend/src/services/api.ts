@@ -1,5 +1,7 @@
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// В Docker используем относительные пути, в разработке - localhost
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '');
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -15,8 +17,8 @@ export const API_ENDPOINTS = {
   MOVIES: {
     LIST: `${API_BASE_URL}/api/movies`,
     BY_ID: (id: string) => `${API_BASE_URL}/api/movies/${id}`,
-    SEARCH: (query: string) => `${API_BASE_URL}/api/movies/search/query?q=${query}`,
-    GENRES: `${API_BASE_URL}/api/movies/genres/list`,
+    SEARCH: (query: string) => `${API_BASE_URL}/api/movies/search?q=${encodeURIComponent(query)}`,
+    GENRES: `${API_BASE_URL}/api/movies/genres`,
     POPULAR: `${API_BASE_URL}/api/movies/popular`,
     HEALTH: `${API_BASE_URL}/api/movies/health`
   },

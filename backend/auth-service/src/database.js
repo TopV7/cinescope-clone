@@ -1,7 +1,8 @@
-const { Pool } = require('pg');
+import pkg from 'pg';
+const { Pool } = pkg;
 
 // Конфигурация подключения к PostgreSQL
-const pool = new Pool({
+export const pool = new Pool({
   host: process.env.DB_HOST || 'auth-db',  // ✅ Имя сервиса из docker-compose
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'auth_db',
@@ -25,7 +26,7 @@ pool.connect((err, client, release) => {
 });
 
 // Функция для выполнения запросов
-const query = (text, params) => {
+export const query = (text, params) => {
   return new Promise((resolve, reject) => {
     pool.query(text, params, (err, result) => {
       if (err) {
@@ -46,8 +47,3 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
-
-export {
-  query,
-  pool
-};

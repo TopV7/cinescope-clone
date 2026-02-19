@@ -15,6 +15,19 @@ const MoviesPage: React.FC = () => {
       return;
     }
 
+    // В реальном приложении здесь будет форма ввода данных карты
+    const cardData = {
+      cardNumber: prompt('Номер карты:') || '',
+      cvv: prompt('CVV:') || '',
+      expiryMonth: prompt('Месяц (ММ):') || '',
+      expiryYear: prompt('Год (ГГ):') || ''
+    };
+
+    if (!cardData.cardNumber || !cardData.cvv || !cardData.expiryMonth || !cardData.expiryYear) {
+      alert('Все поля карты обязательны');
+      return;
+    }
+
     try {
       const user = authService.getCurrentUser();
       await paymentService.createPayment({
@@ -22,12 +35,7 @@ const MoviesPage: React.FC = () => {
         amount: movie.rating || 100,
         currency: 'RUB',
         description: `Билет на фильм: ${movie.title}`,
-        cardData: {
-          cardNumber: '4242424242424242',
-          cvv: '123',
-          expiryMonth: '12',
-          expiryYear: '25'
-        }
+        cardData
       });
       alert('Билет успешно куплен!');
     } catch (e) {

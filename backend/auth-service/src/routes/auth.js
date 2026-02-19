@@ -77,7 +77,7 @@ setInterval(() => {
 
 // Регистрация
 router.post('/register', async (req, res) => {
-  console.log('🔐 Registration request received:', { email: req.body.email, hasPassword: !!req.body.password, hasName: !!req.body.name });
+  console.log('🔐 Registration request received:', { email: req.body.email, hasName: !!req.body.name });
   
   const { email, password, name } = req.body;
 
@@ -139,7 +139,7 @@ router.post('/register', async (req, res) => {
 
 // Вход
 router.post('/login', rateLimitMiddleware, async (req, res) => {
-  console.log('🔐 Login request received:', { email: req.body.email, hasPassword: !!req.body.password });
+  console.log('🔐 Login request received:', { email: req.body.email });
   
   const { email, password } = req.body;
 
@@ -412,10 +412,10 @@ router.put('/profile', authenticateToken, async (req, res) => {
     
     // Строим динамический запрос
     const setClause = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const values = [req.user.userId, ...Object.values(updates)];
+    const values = [...Object.values(updates), req.user.userId];
     
     const result = await query(
-      `UPDATE users SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, email, name, created_at`,
+      `UPDATE users SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $${Object.keys(updates).length + 2} RETURNING id, email, name, created_at, updated_at`,
       values
     );
     

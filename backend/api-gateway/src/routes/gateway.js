@@ -224,8 +224,8 @@ router.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
 
 // Fallback для React Router (SPA)
 router.use((req, res, next) => {
-  // Если запрос начинается с /api/, это API запрос
-  if (req.path.startsWith('/api/')) {
+  // Если запрос начинается с /api/ или /login, это API запрос
+  if (req.path.startsWith('/api/') || req.path.startsWith('/login')) {
     return next();
   }
   
