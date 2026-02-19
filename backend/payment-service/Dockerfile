@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm install --only=production
+RUN npm ci --omit=dev
 
 # Копируем исходный код
 COPY src/ ./src/
