@@ -75,6 +75,7 @@ services:
       - FRONTEND_URL=http://localhost
       - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:443
       - SWAGGER_ENABLED=true
+      - INTERNAL_JWT_SECRET=internal-jwt-secret-for-testing
     networks:
       - cinescope-network
     depends_on:
@@ -101,14 +102,15 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production
+      - JWT_SECRET=super-secret-jwt-key-for-testing-change-in-production
+      - JWT_REFRESH_SECRET=super-secret-refresh-key-for-testing-change-in-production
       - JWT_EXPIRES_IN=24h
       - DB_HOST=auth-db
       - DB_PORT=5432
       - DB_NAME=auth_db
       - DB_USER=auth_user
       - DB_PASSWORD=auth_password
+      - INTERNAL_JWT_SECRET=internal-jwt-secret-for-testing
     networks:
       - cinescope-network
     depends_on:
@@ -136,6 +138,7 @@ services:
       - DB_NAME=cinescope_movies
       - DB_USER=movies_user
       - DB_PASSWORD=movies_password
+      - INTERNAL_JWT_SECRET=internal-jwt-secret-for-testing
     networks:
       - cinescope-network
     depends_on:
@@ -161,13 +164,14 @@ services:
       - PAYMENT_GATEWAY_URL=https://api.payment-provider.com
       - PAYMENT_GATEWAY_API_KEY=your-payment-gateway-api-key
       - PAYMENT_GATEWAY_SECRET=your-payment-gateway-secret
-      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - JWT_SECRET=super-secret-jwt-key-for-testing-change-in-production
       - DB_HOST=payments-db
       - DB_PORT=5432
       - DB_NAME=cinescope_payments
       - DB_USER=payments_user
       - DB_PASSWORD=payments_password
-      - ENCRYPTION_KEY=your-32-character-encryption-key
+      - ENCRYPTION_KEY=abcdefghijklmnopqrstuvwxzy123456789
+      - INTERNAL_JWT_SECRET=internal-jwt-secret-for-testing
     networks:
       - cinescope-network
     depends_on:
