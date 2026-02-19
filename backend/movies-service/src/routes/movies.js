@@ -1,164 +1,164 @@
 import express from 'express';
-import db from '../database.js';
+import { query } from '../database.js';
 
 const router = express.Router();
 
 // Получить все фильмы
-router.get('/', (req, res) => {
-  const { page = 1, limit = 10, genre, search } = req.query;
-  
-  let query = 'SELECT * FROM movies WHERE 1=1';
-  const params = [];
+router.get('/', async (req, res) => {
+  try {
+    const { page = 1, limit = 10, genre, search } = req.query;
+    
+    let sql = 'SELECT * FROM movies WHERE 1=1';
+    const params = [];
 
-  // Фильтрация по жанру
-  if (genre) {
-    query += ' AND genre = ?';
-    params.push(genre);
-  }
-
-  // Поиск по названию
-  if (search) {
-    query += ' AND title LIKE ?';
-    params.push(`%${search}%`);
-  }
-
-  // Сортировка и пагинация
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  const limitNum = parseInt(limit);
-  const offset = (parseInt(page) - 1) * limitNum;
-  params.push(limitNum, offset);
-
-  db.all(query, params, (err, movies) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
+    // Фильтрация по жанру
+    if (genre) {
+      sql += ' AND genre = $1';
+      params.push(genre);
     }
 
-    // Получаем общее количество для пагинации
-    let countQuery = 'SELECT COUNT(*) as total FROM movies WHERE 1=1';
+    // Поиск по названию
+    if (search) {
+      sql += ' AND title ILIKE $' + (params.length + 1);
+      params.push(`%${search}%`);
+    }
+
+    // Сортировка и пагинация
+    sql += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    const limitNum = parseInt(limit);
+    const offset = (parseInt(page) - 1) * limitNum;
+    params.push(limitNum, offset);
+
+    const moviesResult = await query(sql, params);
+
+    // Получить общее количество для пагинации
+    let countSql = 'SELECT COUNT(*) as total FROM movies WHERE 1=1';
     const countParams = [];
     
     if (genre) {
-      countQuery += ' AND genre = ?';
+      countSql += ' AND genre = $1';
       countParams.push(genre);
     }
     
     if (search) {
-      countQuery += ' AND title LIKE ?';
+      countSql += ' AND title ILIKE $' + (countParams.length + 1);
       countParams.push(`%${search}%`);
     }
 
-    db.get(countQuery, countParams, (err, countResult) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
+    const countResult = await query(countSql, countParams);
 
-      res.json({
-        movies,
-        pagination: {
-          page: parseInt(page),
-          limit: limitNum,
-          total: countResult.total,
-          pages: Math.ceil(countResult.total / limitNum)
-        }
-      });
+    res.json({
+      movies: moviesResult.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total: parseInt(countResult.rows[0].total),
+        pages: Math.ceil(parseInt(countResult.rows[0].total) / limitNum)
+      }
     });
-  });
+  } catch (error) {
+    console.error('Error fetching movies:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Получить фильм по ID
-router.get('/:id', (req, res) => {
-  const { id } = req.params;
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
 
-  db.get('SELECT * FROM movies WHERE id = ?', [id], (err, movie) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
+    const movieResult = await query('SELECT * FROM movies WHERE id = $1', [id]);
 
-    if (!movie) {
+    if (movieResult.rows.length === 0) {
       return res.status(404).json({ error: 'Movie not found' });
     }
 
-    res.json({ movie });
-  });
+    res.json({ movie: movieResult.rows[0] });
+  } catch (error) {
+    console.error('Error fetching movie:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Получить все жанры
-router.get('/genres/list', (req, res) => {
-  db.all('SELECT DISTINCT genre FROM movies ORDER BY genre', (err, genres) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
+router.get('/genres', async (req, res) => {
+  try {
+    const genresResult = await query('SELECT DISTINCT genre FROM movies ORDER BY genre');
 
     res.json({ 
-      genres: genres.map(g => g.genre).filter(g => g) 
+      genres: genresResult.rows.map(g => g.genre).filter(g => g)
     });
-  });
+  } catch (error) {
+    console.error('Error fetching genres:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Поиск фильмов
-router.get('/search/query', (req, res) => {
-  const { q: query, genre, minRating, maxRating, year } = req.query;
+router.get('/search', async (req, res) => {
+  try {
+    const { q: query, genre, minRating, maxRating, year } = req.query;
 
-  if (!query) {
-    return res.status(400).json({ error: 'Search query is required' });
-  }
-
-  let sql = `
-    SELECT * FROM movies 
-    WHERE (title LIKE ? OR description LIKE ?)
-  `;
-  const params = [`%${query}%`, `%${query}%`];
-
-  if (genre) {
-    sql += ' AND genre = ?';
-    params.push(genre);
-  }
-
-  if (minRating) {
-    sql += ' AND rating >= ?';
-    params.push(parseFloat(minRating));
-  }
-
-  if (maxRating) {
-    sql += ' AND rating <= ?';
-    params.push(parseFloat(maxRating));
-  }
-
-  if (year) {
-    sql += ' AND release_year = ?';
-    params.push(parseInt(year));
-  }
-
-  sql += ' ORDER BY rating DESC LIMIT 50';
-
-  db.all(sql, params, (err, movies) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
+    if (!query) {
+      return res.status(400).json({ error: 'Search query is required' });
     }
+
+    let sql = `
+      SELECT * FROM movies 
+      WHERE (title ILIKE $1 OR description ILIKE $2)
+    `;
+    const params = [`%${query}%`, `%${query}%`];
+
+    if (genre) {
+      sql += ' AND genre = $' + (params.length + 1);
+      params.push(genre);
+    }
+
+    if (minRating) {
+      sql += ' AND rating >= $' + (params.length + 1);
+      params.push(parseFloat(minRating));
+    }
+
+    if (maxRating) {
+      sql += ' AND rating <= $' + (params.length + 1);
+      params.push(parseFloat(maxRating));
+    }
+
+    if (year) {
+      sql += ' AND EXTRACT(YEAR FROM release_date) = $' + (params.length + 1);
+      params.push(parseInt(year));
+    }
+
+    sql += ' ORDER BY rating DESC LIMIT 50';
+
+    const moviesResult = await query(sql, params);
 
     res.json({ 
       query,
-      movies,
-      count: movies.length 
+      movies: moviesResult.rows,
+      count: moviesResult.rows.length 
     });
-  });
+  } catch (error) {
+    console.error('Error searching movies:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Получить популярные фильмы
-router.get('/popular', (req, res) => {
-  const { limit = 10 } = req.query;
+router.get('/popular', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
 
-  db.all(
-    'SELECT * FROM movies ORDER BY rating DESC LIMIT ?',
-    [parseInt(limit)],
-    (err, movies) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
+    const moviesResult = await query(
+      'SELECT * FROM movies ORDER BY rating DESC LIMIT $1',
+      [parseInt(limit)]
+    );
 
-      res.json({ movies });
-    }
-  );
+    res.json({ movies: moviesResult.rows });
+  } catch (error) {
+    console.error('Error fetching popular movies:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 export default router;

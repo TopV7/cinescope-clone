@@ -19,6 +19,46 @@ services:
       timeout: 5s
       retries: 5
 
+  # PostgreSQL для Movies Service
+  movies-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: cinescope_movies
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: movies_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - movies-data:/var/lib/postgresql/data
+      - ./backend/movies-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cinescope-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cinescope_movies"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL для Payment Service
+  payments-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: cinescope_payments
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: payments_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - payments-data:/var/lib/postgresql/data
+      - ./backend/payment-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cinescope-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cinescope_payments"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # API Gateway
   api-gateway:
     build:
@@ -41,6 +81,9 @@ services:
       - auth-service
       - movies-service
       - payment-service
+      - auth-db
+      - movies-db
+      - payments-db
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -78,7 +121,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Movies Service (использует SQLite)
+  # Movies Service (использует PostgreSQL)
   movies-service:
     build:
       context: ./backend/movies-service
@@ -88,10 +131,16 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3002
-    volumes:
-      - movies-data:/app/data
+      - DB_HOST=movies-db
+      - DB_PORT=5432
+      - DB_NAME=cinescope_movies
+      - DB_USER=postgres
+      - DB_PASSWORD=movies_password
     networks:
       - cinescope-network
+    depends_on:
+      movies-db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
@@ -99,7 +148,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Payment Service (использует SQLite)
+  # Payment Service (использует PostgreSQL)
   payment-service:
     build:
       context: ./backend/payment-service
@@ -113,12 +162,17 @@ services:
       - PAYMENT_GATEWAY_API_KEY=your-payment-gateway-api-key
       - PAYMENT_GATEWAY_SECRET=your-payment-gateway-secret
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-      - DB_PATH=/app/data/payments.sqlite
+      - DB_HOST=payments-db
+      - DB_PORT=5432
+      - DB_NAME=cinescope_payments
+      - DB_USER=postgres
+      - DB_PASSWORD=payments_password
       - ENCRYPTION_KEY=your-32-character-encryption-key
-    volumes:
-      - payments-data:/app/data
     networks:
       - cinescope-network
+    depends_on:
+      payments-db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3003/health"]

@@ -1,110 +1,70 @@
-import sqlite3 from 'sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import pg from 'pg';
+import dotenv from 'dotenv';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
-const dbPath = path.join(__dirname, '../../data/payments.sqlite');
+// PostgreSQL connection configuration
+const pool = new pg.Pool({
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'cinescope_payments',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'password',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 
-const db = new sqlite3.Database(dbPath, (err) => {
+// Test connection
+pool.connect((err, client, release) => {
   if (err) {
-    console.error('Error opening database:', err.message);
+    console.error('Error connecting to PostgreSQL database:', err.message);
   } else {
-    console.log('✅ Connected to SQLite database');
-    console.log(`📂 Database path: ${dbPath}`);
-    createTables();
+    console.log('✅ Connected to PostgreSQL database');
+    console.log(`📂 Database: ${process.env.DB_NAME || 'cinescope_payments'}`);
+    console.log(`🌐 Host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}`);
+    release();
   }
 });
 
-function createTables() {
-  // Создаем таблицу платежей
-  db.run(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      amount REAL NOT NULL,
-      original_amount REAL NOT NULL,
-      commission_amount REAL DEFAULT 0,
-      currency TEXT DEFAULT 'USD',
-      status TEXT DEFAULT 'pending',
-      card_last_four TEXT,
-      transaction_id TEXT UNIQUE,
-      payment_method TEXT,
-      description TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `, (err) => {
-    if (err) {
-      console.error('Error creating payments table:', err.message);
-    } else {
-      console.log('✅ Payments table created or already exists');
-      addSamplePayments();
-    }
+// Helper function for queries
+export const query = async (text, params) => {
+  const start = Date.now();
+  try {
+    const res = await pool.query(text, params);
+    const duration = Date.now() - start;
+    console.log(`📊 Query executed in ${duration}ms`);
+    return res;
+  } catch (error) {
+    const duration = Date.now() - start;
+    console.error(`❌ Query failed after ${duration}ms:`, error.message);
+    throw error;
+  }
+};
+
+// Helper function for transactions
+export const transaction = async (callback) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('🔄 Closing PostgreSQL connection pool...');
+  pool.end(() => {
+    console.log('✅ PostgreSQL connection pool closed');
+    process.exit(0);
   });
-}
+});
 
-function addSamplePayments() {
-  // Добавляем несколько примеров платежей
-  const samplePayments = [
-    {
-      user_id: 1,
-      amount: 16.39,
-      original_amount: 15.99,
-      commission_amount: 0.40,
-      currency: 'USD',
-      status: 'completed',
-      card_last_four: '1234',
-      transaction_id: 'txn_1234567890',
-      payment_method: 'credit_card',
-      description: 'Movie ticket - Inception'
-    },
-    {
-      user_id: 2,
-      amount: 12.82,
-      original_amount: 12.50,
-      commission_amount: 0.32,
-      currency: 'USD',
-      status: 'completed',
-      card_last_four: '5678',
-      transaction_id: 'txn_0987654321',
-      payment_method: 'debit_card',
-      description: 'Movie ticket - The Dark Knight'
-    },
-    {
-      user_id: 1,
-      amount: 18.45,
-      original_amount: 18.00,
-      commission_amount: 0.45,
-      currency: 'USD',
-      status: 'pending',
-      card_last_four: '9012',
-      transaction_id: 'txn_1122334455',
-      payment_method: 'credit_card',
-      description: 'Movie ticket - Interstellar'
-    }
-  ];
-
-  samplePayments.forEach(payment => {
-    db.run(`
-      INSERT OR IGNORE INTO payments (user_id, amount, original_amount, commission_amount, currency, status, card_last_four, transaction_id, payment_method, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      payment.user_id,
-      payment.amount,
-      payment.original_amount,
-      payment.commission_amount,
-      payment.currency,
-      payment.status,
-      payment.card_last_four,
-      payment.transaction_id,
-      payment.payment_method,
-      payment.description
-    ]);
-  });
-
-  console.log('✅ Sample payments added');
-}
-
-export default db;
+export default pool;
