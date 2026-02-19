@@ -17,6 +17,9 @@ import gatewayRoutes from './routes/gateway.js';
 // Загружаем .env ПЕРЕД всеми импортами
 dotenv.config();
 
+// Валидируем переменные окружения
+import './validate-env.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 

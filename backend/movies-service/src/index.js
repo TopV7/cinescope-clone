@@ -8,7 +8,13 @@ import moviesRoutes from './routes/movies.js';
 // Загружаем .env ПЕРЕД всеми импортами
 dotenv.config();
 
+// Валидируем переменные окружения
+import './validate-env.js';
+
 import './database.js'; // Инициализация базы данных
+
+// Middleware для внутреннего JWT
+import { authenticateInternal } from './middleware/internalAuth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -21,6 +27,9 @@ app.use(cors({
 }));
 app.use(morgan('combined'));
 app.use(express.json());
+
+// Middleware для проверки внутреннего JWT
+app.use(authenticateInternal);
 
 // Health check (ДО routes!)
 app.get('/health', (req, res) => {

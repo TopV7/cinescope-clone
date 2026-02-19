@@ -1,6 +1,7 @@
 import express from 'express';
 import { query, transaction } from '../database.js';
 import { validateCard, generateTransactionId } from '../utils/cardValidator.js';
+import { encrypt, decrypt } from '../utils/encryption.js';
 import { authenticateToken, requireOwnership } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -78,6 +79,7 @@ router.post('/create', authenticateToken, async (req, res) => {
     // Генерация transaction ID
     const transactionId = generateTransactionId();
     const cardLastFour = cardValidation.results.maskedNumber.slice(-4);
+    const encryptedCardLastFour = encrypt(cardLastFour);
 
     // Сохранение платежа в базе данных
     const paymentResult = await query(
@@ -91,7 +93,7 @@ router.post('/create', authenticateToken, async (req, res) => {
         commissionAmount, // Комиссия
         currency,
         'pending',
-        cardLastFour,
+        encryptedCardLastFour,
         transactionId,
         'credit_card',
         description || 'Movie ticket purchase',
@@ -166,7 +168,7 @@ router.get('/status/:transactionId', authenticateToken, async (req, res) => {
       currency: payment.currency,
       createdAt: payment.created_at,
       updatedAt: payment.updated_at,
-      cardLastFour: payment.card_last_four,
+      cardLastFour: decrypt(payment.card_last_four),
       description: payment.description,
       seats: payment.seats ? JSON.parse(payment.seats) : []
     });
@@ -217,7 +219,7 @@ router.get('/history/:userId', authenticateToken, requireOwnership, async (req, 
         commissionAmount: parseFloat(p.commission_amount),
         currency: p.currency,
         status: p.status,
-        cardLastFour: p.card_last_four,
+        cardLastFour: decrypt(p.card_last_four),
         description: p.description,
         seats: p.seats ? JSON.parse(p.seats) : [],
         createdAt: p.created_at,
@@ -279,7 +281,7 @@ router.post('/refund', authenticateToken, async (req, res) => {
         ]
       );
 
-      // Создать отрицательный платеж для возврата
+    // Создать отрицательный платеж для возврата
       await client.query(
         `INSERT INTO payments (user_id, amount, original_amount, commission_amount, currency, status, card_last_four, transaction_id, payment_method, description)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -290,7 +292,7 @@ router.post('/refund', authenticateToken, async (req, res) => {
           -parseFloat(payment.commission_amount), // Возврат комиссии
           payment.currency,
           'refunded',
-          payment.card_last_four,
+          encrypt(decrypt(payment.card_last_four)), // Расшифровать и снова зашифровать для consistency
           refundTransactionId,
           'refund',
           `Refund for transaction ${transactionId}${reason ? ': ' + reason : ''}`

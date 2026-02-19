@@ -1,4 +1,5 @@
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import jwt from 'jsonwebtoken';
 
 // Конфигурация прокси для микросервисов
 export const authProxy = createProxyMiddleware({
@@ -33,6 +34,10 @@ export const authProxy = createProxyMiddleware({
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`🔄 Proxying to Auth Service: ${req.method} ${req.url}`);
+
+    // Добавляем внутренний JWT для межсервисной аутентификации
+    const internalToken = jwt.sign({ service: 'api-gateway' }, process.env.INTERNAL_JWT_SECRET);
+    proxyReq.setHeader('X-Internal-Auth', internalToken);
 
     if (req.body && Object.keys(req.body).length) {
       const bodyData = JSON.stringify(req.body);
@@ -81,6 +86,10 @@ export const moviesProxy = createProxyMiddleware({
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`🔄 Proxying to Movies Service: ${req.method} ${req.url}`);
+
+    // Добавляем внутренний JWT для межсервисной аутентификации
+    const internalToken = jwt.sign({ service: 'api-gateway' }, process.env.INTERNAL_JWT_SECRET);
+    proxyReq.setHeader('X-Internal-Auth', internalToken);
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`✅ Movies Service Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);
@@ -118,6 +127,10 @@ export const paymentProxy = createProxyMiddleware({
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`🔄 Proxying to Payment Service: ${req.method} ${req.url}`);
+
+    // Добавляем внутренний JWT для межсервисной аутентификации
+    const internalToken = jwt.sign({ service: 'api-gateway' }, process.env.INTERNAL_JWT_SECRET);
+    proxyReq.setHeader('X-Internal-Auth', internalToken);
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`✅ Payment Service Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);

@@ -4,7 +4,17 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
-import './database.js';
+
+// Загружаем .env ПЕРЕД всеми импортами
+dotenv.config();
+
+// Валидируем переменные окружения
+import './validate-env.js';
+
+import './database.js'; // Инициализация базы данных
+
+// Middleware для внутреннего JWT
+import { authenticateInternal } from './middleware/internalAuth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +26,9 @@ app.use(morgan('combined'));
 
 // JSON parser ДО логирования
 app.use(express.json());
+
+// Middleware для проверки внутреннего JWT
+app.use(authenticateInternal);
 
 // Логирование всех запросов
 app.use((req, res, next) => {
