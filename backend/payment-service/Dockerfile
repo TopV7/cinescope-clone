@@ -7,8 +7,8 @@ RUN apk add --no-cache curl
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
-COPY package*.json ./
+# Копируем package.json
+COPY package.json ./
 
 # Устанавливаем зависимости
 RUN npm ci --omit=dev
