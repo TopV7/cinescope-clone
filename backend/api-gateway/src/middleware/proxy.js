@@ -38,13 +38,6 @@ export const authProxy = createProxyMiddleware({
     // Добавляем внутренний JWT для межсервисной аутентификации
     const internalToken = jwt.sign({ service: 'api-gateway' }, process.env.INTERNAL_JWT_SECRET);
     proxyReq.setHeader('X-Internal-Auth', internalToken);
-
-    if (req.body && Object.keys(req.body).length) {
-      const bodyData = JSON.stringify(req.body);
-      proxyReq.setHeader('Content-Type', 'application/json');
-      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-      proxyReq.write(bodyData);
-    }
   },
   
   onProxyRes: (proxyRes, req, res) => {
