@@ -2,15 +2,17 @@
 CREATE TABLE IF NOT EXISTS payments (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
-    session_id INTEGER NOT NULL,
-    seats JSONB, -- массив номеров мест
-    amount DECIMAL(10,2) NOT NULL,
+    original_amount DECIMAL(10,2) NOT NULL, -- оригинальная сумма без комиссии
+    commission_amount DECIMAL(10,2) DEFAULT 0.0, -- сумма комиссии
+    amount DECIMAL(10,2) NOT NULL, -- итоговая сумма с комиссией
     currency VARCHAR(3) DEFAULT 'RUB',
     status VARCHAR(20) DEFAULT 'pending', -- pending, completed, failed, refunded
     payment_method VARCHAR(50), -- card, cash, etc.
     card_last_four VARCHAR(4),
     transaction_id VARCHAR(255) UNIQUE,
     gateway_response JSONB,
+    description TEXT,
+    seats JSONB, -- массив номеров мест
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

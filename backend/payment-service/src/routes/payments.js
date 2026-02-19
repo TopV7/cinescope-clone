@@ -102,7 +102,7 @@ router.post('/create', authenticateToken, async (req, res) => {
     console.log(`Payment created: ${transactionId} for user ${userId}, amount ${totalAmount} (incl. ${commissionAmount.toFixed(2)} commission)`);
 
     // Имитация обработки платежа (в реальном проекте здесь был бы вызов платежного шлюза)
-    setTimeout(async () => {
+    const processPayment = async () => {
       try {
         // Случайный результат для демонстрации
         const isSuccess = Math.random() > 0.1; // 90% успех
@@ -117,7 +117,10 @@ router.post('/create', authenticateToken, async (req, res) => {
       } catch (error) {
         console.error('Payment processing failed:', error);
       }
-    }, 2000); // 2 секунды имитация обработки
+    };
+
+    // Запускаем обработку асинхронно
+    setTimeout(processPayment, 2000); // 2 секунды имитация обработки
 
     // Сразу возвращаем ответ с pending статусом
     res.status(201).json({

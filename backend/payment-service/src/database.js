@@ -1,5 +1,7 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -15,14 +17,29 @@ const pool = new pg.Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// Test connection
-pool.connect((err, client, release) => {
+// Initialize database schema
+const initializeDatabase = async () => {
+  try {
+    const initSQLPath = path.join(process.cwd(), 'init.sql');
+    if (fs.existsSync(initSQLPath)) {
+      const initSQL = fs.readFileSync(initSQLPath, 'utf8');
+      await pool.query(initSQL);
+      console.log('✅ Database schema initialized');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing database:', error.message);
+  }
+};
+
+// Test connection and initialize
+pool.connect(async (err, client, release) => {
   if (err) {
     console.error('Error connecting to PostgreSQL database:', err.message);
   } else {
     console.log('✅ Connected to PostgreSQL database');
     console.log(`📂 Database: ${process.env.DB_NAME || 'cinescope_payments'}`);
     console.log(`🌐 Host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}`);
+    await initializeDatabase();
     release();
   }
 });

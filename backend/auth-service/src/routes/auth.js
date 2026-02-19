@@ -412,10 +412,10 @@ router.put('/profile', authenticateToken, async (req, res) => {
     
     // Строим динамический запрос
     const setClause = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const values = [...Object.values(updates), req.user.userId];
+    const values = [req.user.userId, ...Object.values(updates)];
     
     const result = await query(
-      `UPDATE users SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $${Object.keys(updates).length + 2} RETURNING id, email, name, created_at, updated_at`,
+      `UPDATE users SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, email, name, created_at, updated_at`,
       values
     );
     

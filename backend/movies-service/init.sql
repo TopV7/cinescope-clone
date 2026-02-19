@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS movies (
     duration INTEGER, -- в минутах
     genre VARCHAR(100),
     release_date DATE,
+    release_year INTEGER, -- год выпуска для удобства поиска
     rating DECIMAL(3,1) DEFAULT 0.0,
     poster_url VARCHAR(500),
     trailer_url VARCHAR(500),
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS seats (
 -- Создаем индексы для производительности
 CREATE INDEX IF NOT EXISTS idx_movies_title ON movies(title);
 CREATE INDEX IF NOT EXISTS idx_movies_genre ON movies(genre);
+CREATE INDEX IF NOT EXISTS idx_movies_release_year ON movies(release_year);
 CREATE INDEX IF NOT EXISTS idx_movie_sessions_movie_id ON movie_sessions(movie_id);
 CREATE INDEX IF NOT EXISTS idx_movie_sessions_time ON movie_sessions(session_time);
 CREATE INDEX IF NOT EXISTS idx_seats_session_id ON seats(session_id);

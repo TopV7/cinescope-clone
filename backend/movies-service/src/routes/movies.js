@@ -1,7 +1,11 @@
 import express from 'express';
 import { query } from '../database.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Применяем аутентификацию ко всем маршрутам
+router.use(authenticateToken);
 
 // Получить все фильмы
 router.get('/', async (req, res) => {
@@ -95,11 +99,11 @@ router.get('/genres', async (req, res) => {
 });
 
 // Поиск фильмов
-router.get('/search', async (req, res) => {
+router.get('/search/query', async (req, res) => {
   try {
-    const { q: query, genre, minRating, maxRating, year } = req.query;
+    const { q: searchQuery, genre, minRating, maxRating, year, page = 1, limit = 10 } = req.query;
 
-    if (!query) {
+    if (!searchQuery) {
       return res.status(400).json({ error: 'Search query is required' });
     }
 
@@ -107,7 +111,7 @@ router.get('/search', async (req, res) => {
       SELECT * FROM movies 
       WHERE (title ILIKE $1 OR description ILIKE $2)
     `;
-    const params = [`%${query}%`, `%${query}%`];
+    const params = [`%${searchQuery}%`, `%${searchQuery}%`];
 
     if (genre) {
       sql += ' AND genre = $' + (params.length + 1);
@@ -125,18 +129,56 @@ router.get('/search', async (req, res) => {
     }
 
     if (year) {
-      sql += ' AND EXTRACT(YEAR FROM release_date) = $' + (params.length + 1);
+      sql += ' AND release_year = $' + (params.length + 1);
       params.push(parseInt(year));
     }
 
-    sql += ' ORDER BY rating DESC LIMIT 50';
+    // Добавляем пагинацию
+    const limitNum = parseInt(limit);
+    const offset = (parseInt(page) - 1) * limitNum;
+    sql += ' ORDER BY rating DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    params.push(limitNum, offset);
 
     const moviesResult = await query(sql, params);
 
+    // Получить общее количество для пагинации
+    let countSql = `
+      SELECT COUNT(*) as total FROM movies 
+      WHERE (title ILIKE $1 OR description ILIKE $2)
+    `;
+    const countParams = [`%${searchQuery}%`, `%${searchQuery}%`];
+
+    if (genre) {
+      countSql += ' AND genre = $' + (countParams.length + 1);
+      countParams.push(genre);
+    }
+
+    if (minRating) {
+      countSql += ' AND rating >= $' + (countParams.length + 1);
+      countParams.push(parseFloat(minRating));
+    }
+
+    if (maxRating) {
+      countSql += ' AND rating <= $' + (countParams.length + 1);
+      countParams.push(parseFloat(maxRating));
+    }
+
+    if (year) {
+      countSql += ' AND release_year = $' + (countParams.length + 1);
+      countParams.push(parseInt(year));
+    }
+
+    const countResult = await query(countSql, countParams);
+
     res.json({ 
-      query,
+      query: searchQuery,
       movies: moviesResult.rows,
-      count: moviesResult.rows.length 
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total: parseInt(countResult.rows[0].total),
+        pages: Math.ceil(parseInt(countResult.rows[0].total) / limitNum)
+      }
     });
   } catch (error) {
     console.error('Error searching movies:', error);
