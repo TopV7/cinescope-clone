@@ -24,7 +24,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: cinescope_movies
-      POSTGRES_USER: postgres
+      POSTGRES_USER: movies_user
       POSTGRES_PASSWORD: movies_password
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
@@ -34,7 +34,7 @@ services:
       - cinescope-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d cinescope_movies"]
+      test: ["CMD-SHELL", "pg_isready -U movies_user -d cinescope_movies"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,7 +44,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: cinescope_payments
-      POSTGRES_USER: postgres
+      POSTGRES_USER: payments_user
       POSTGRES_PASSWORD: payments_password
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
@@ -54,7 +54,7 @@ services:
       - cinescope-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d cinescope_payments"]
+      test: ["CMD-SHELL", "pg_isready -U payments_user -d cinescope_payments"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -134,7 +134,7 @@ services:
       - DB_HOST=movies-db
       - DB_PORT=5432
       - DB_NAME=cinescope_movies
-      - DB_USER=postgres
+      - DB_USER=movies_user
       - DB_PASSWORD=movies_password
     networks:
       - cinescope-network
@@ -165,7 +165,7 @@ services:
       - DB_HOST=payments-db
       - DB_PORT=5432
       - DB_NAME=cinescope_payments
-      - DB_USER=postgres
+      - DB_USER=payments_user
       - DB_PASSWORD=payments_password
       - ENCRYPTION_KEY=your-32-character-encryption-key
     networks:

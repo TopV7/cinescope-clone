@@ -51,6 +51,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER IF NOT EXISTS update_movies_updated_at 
+DROP TRIGGER IF EXISTS update_movies_updated_at ON movies;
+CREATE TRIGGER update_movies_updated_at 
     BEFORE UPDATE ON movies 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
