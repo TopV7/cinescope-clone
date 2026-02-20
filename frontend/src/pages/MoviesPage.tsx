@@ -94,7 +94,15 @@ const MoviesPage: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">🎬 Фильмы</h1>
-          <p className="text-gray-600 text-lg">Выберите фильм для просмотра</p>
+          <p className="text-gray-600 text-lg mb-4">Выберите фильм для просмотра</p>
+          {authService.isAuthenticated() && (
+            <Link 
+              to="/movies/add" 
+              className="inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg mb-4"
+            >
+              ➕ Добавить фильм
+            </Link>
+          )}
         </div>
 
         {movies.length === 0 ? (

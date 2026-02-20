@@ -7,6 +7,65 @@ const router = express.Router();
 // Применяем аутентификацию ко всем маршрутам
 router.use(authenticateToken);
 
+// Создать новый фильм
+router.post('/', async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      duration,
+      genre,
+      release_date,
+      release_year,
+      rating,
+      poster_url,
+      trailer_url
+    } = req.body;
+
+    // Валидация обязательных полей
+    if (!title || !duration || !genre) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: title, duration, genre' 
+      });
+    }
+
+    // Валидация duration (должна быть положительным числом)
+    if (duration <= 0) {
+      return res.status(400).json({ 
+        error: 'Duration must be a positive number' 
+      });
+    }
+
+    // Валидация rating (должна быть от 0 до 10)
+    if (rating && (rating < 0 || rating > 10)) {
+      return res.status(400).json({ 
+        error: 'Rating must be between 0 and 10' 
+      });
+    }
+
+    const result = await query(
+      `INSERT INTO movies (title, description, duration, genre, release_date, release_year, rating, poster_url, trailer_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [title, description, duration, genre, release_date, release_year, rating || 0, poster_url, trailer_url]
+    );
+
+    console.log('✅ Movie created successfully:', { 
+      movieId: result.rows[0].id, 
+      title: result.rows[0].title,
+      userId: req.user.userId 
+    });
+
+    res.status(201).json({ 
+      message: 'Movie created successfully',
+      movie: result.rows[0] 
+    });
+  } catch (error) {
+    console.error('❌ Movie creation error:', error.message);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // Получить все фильмы
 router.get('/', async (req, res) => {
   try {

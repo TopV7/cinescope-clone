@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     name VARCHAR(255) DEFAULT 'User',
+    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -30,9 +31,29 @@ CREATE TABLE IF NOT EXISTS password_resets (
 -- Создаем индексы для производительности
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
 CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets(token_hash);
 CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at ON password_resets(expires_at);
+
+-- Добавляем поле role если его нет (для существующих таблиц)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                  WHERE table_name = 'users' AND column_name = 'role') THEN
+        ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user';
+        ALTER TABLE users ADD CONSTRAINT check_role CHECK (role IN ('user', 'admin'));
+    END IF;
+END $$;
+
+-- Создаем администратора по умолчанию если его нет
+INSERT INTO users (email, password_hash, name, role) 
+VALUES (
+    'admin@cinescope.com',
+    '$2b$10$rQZ8ZkGQjGZ8ZGZ8ZGZ8ZOZ8ZGZ8ZGZ8ZGZ8ZGZ8ZGZ8ZGZ8ZGZ8ZGZ8',
+    'Administrator',
+    'admin'
+) ON CONFLICT (email) DO NOTHING;

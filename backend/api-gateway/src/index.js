@@ -41,34 +41,41 @@ app.use(cors({
 app.use(morgan('combined'));
 app.use(express.json());
 
+// Временно отключаем rate limiting для отладки
 // Rate limiting middleware (простая реализация)
-const rateLimit = {};
-app.use((req, res, next) => {
-  const key = req.ip;
-  const now = Date.now();
-  const windowMs = 60 * 1000; // 1 минута
-  const maxRequests = 1000; // Увеличенный лимит для gateway
+// const rateLimit = {};
+// app.use((req, res, next) => {
+//   try {
+//     const key = req.ip;
+//     const now = Date.now();
+//     const windowMs = 60 * 1000; // 1 минута
+//     const maxRequests = 1000; // Увеличенный лимит для gateway
 
-  if (!rateLimit[key]) {
-    rateLimit[key] = { count: 0, resetTime: now + windowMs };
-  }
+//     if (!rateLimit[key]) {
+//       rateLimit[key] = { count: 0, resetTime: now + windowMs };
+//     }
 
-  if (now > rateLimit[key].resetTime) {
-    rateLimit[key] = { count: 0, resetTime: now + windowMs };
-  }
+//     if (now > rateLimit[key].resetTime) {
+//       rateLimit[key] = { count: 0, resetTime: now + windowMs };
+//     }
 
-  rateLimit[key].count++;
+//     rateLimit[key].count++;
 
-  if (rateLimit[key].count > maxRequests) {
-    return res.status(429).json({
-      error: 'Too many requests',
-      message: `Rate limit exceeded. Max ${maxRequests} requests per minute.`,
-      retryAfter: Math.ceil((rateLimit[key].resetTime - now) / 1000)
-    });
-  }
+//     if (rateLimit[key].count > maxRequests) {
+//       console.log(`🚫 Rate limit exceeded for ${key}: ${rateLimit[key].count}/${maxRequests}`);
+//       return res.status(429).json({
+//         error: 'Too many requests',
+//         message: `Rate limit exceeded. Max ${maxRequests} requests per minute.`,
+//         retryAfter: Math.ceil((rateLimit[key].resetTime - now) / 1000)
+//       });
+//     }
 
-  next();
-});
+//     next();
+//   } catch (error) {
+//     console.error('❌ Rate limiting error:', error);
+//     next();
+//   }
+// });
 
 // Request logging middleware
 app.use((req, res, next) => {

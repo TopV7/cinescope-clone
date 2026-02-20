@@ -14,6 +14,18 @@ export interface Movie {
   updated_at: string;
 }
 
+export interface CreateMovieRequest {
+  title: string;
+  description?: string;
+  duration: number;
+  genre: string;
+  release_date?: string;
+  release_year?: number;
+  rating?: number;
+  poster_url?: string;
+  trailer_url?: string;
+}
+
 export interface MovieSearchParams {
   page?: number;
   limit?: number;
@@ -25,6 +37,27 @@ export interface MovieSearchParams {
 
 // Movies Service
 export const movieService = {
+  // Create new movie
+  async createMovie(movieData: CreateMovieRequest): Promise<Movie> {
+    try {
+      const response = await fetch(API_ENDPOINTS.MOVIES.LIST, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(movieData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create movie');
+      }
+
+      return data.movie;
+    } catch (error) {
+      console.error('Error creating movie:', error);
+      throw error;
+    }
+  },
   // Get all movies with pagination
   async getMovies(params: MovieSearchParams = {}): Promise<PaginatedResponse<Movie>> {
     try {

@@ -7,6 +7,7 @@ import MovieDetailPage from './pages/MovieDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SessionsPage from './pages/SessionsPage';
+import AddMoviePage from './pages/AddMoviePage';
 import './App.css';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/movies/:id" element={<MovieDetailPage />} />
+            <Route path="/movies/add" element={<AddMoviePage />} />
             <Route path="/sessions" element={<SessionsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />

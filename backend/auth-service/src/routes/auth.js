@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query, pool } from '../database.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -118,10 +119,27 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     console.log('💾 Creating user in database...');
-    // Создаем пользователя с таймаутом
+    // Тестовый endpoint для проверки JSON
+    router.post('/test', async (req, res) => {
+      console.log('🔍 Test endpoint called');
+      console.log('🔍 Headers:', req.headers);
+      console.log('🔍 Body:', req.body);
+      
+      try {
+        res.json({ 
+          message: 'Test successful',
+          received: req.body 
+        });
+      } catch (error) {
+        console.error('❌ Test error:', error);
+        res.status(500).json({ error: 'Test error' });
+      }
+    });
+
+    // Вход пользователя с таймаутом
     const resultPromise = query(
-      'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id',
-      [email, hashedPassword, name || 'User']
+      'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id',
+      [email, hashedPassword, name || 'User', 'user']
     );
     const result = await Promise.race([resultPromise, timeoutPromise]);
 
@@ -169,7 +187,7 @@ router.post('/login', rateLimitMiddleware, async (req, res) => {
 
     console.log('🔑 Creating JWT tokens for user:', user.id);
     // Создаем JWT токены
-    const payload = { userId: user.id, email: user.email };
+    const payload = { userId: user.id, email: user.email, role: user.role };
     const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
     const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
 
@@ -185,12 +203,13 @@ router.post('/login', rateLimitMiddleware, async (req, res) => {
     console.log('✅ Login successful:', { userId: user.id, email: user.email, name: user.name });
     res.json({
       message: 'Login successful',
-      accessToken,
+      token: accessToken, // Изменяем accessToken на token
       refreshToken,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        role: user.role
       }
     });
   } catch (error) {
@@ -510,23 +529,6 @@ router.post('/logout-all', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-// Middleware для проверки токена
-function authenticateToken(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token is required' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-}
 
 // Получение профиля пользователя
 router.get('/profile', authenticateToken, async (req, res) => {
