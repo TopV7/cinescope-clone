@@ -6,7 +6,6 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch"
   },
@@ -40,6 +39,9 @@
   "jest": {
     "testEnvironment": "node",
     "extensionsToTreatAsEsm": [".js"],
-    "transform": {}
+    "transform": {},
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    }
   }
 }

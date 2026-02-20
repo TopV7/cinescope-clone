@@ -32,7 +32,7 @@ const MoviesPage: React.FC = () => {
       const user = authService.getCurrentUser();
       await paymentService.createPayment({
         userId: user?.id || 0,
-        amount: movie.rating || 100,
+        amount: 500, // Fixed ticket price
         currency: 'RUB',
         description: `Билет на фильм: ${movie.title}`,
         cardData
@@ -121,10 +121,13 @@ const MoviesPage: React.FC = () => {
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">{movie.description}</p>
                     <div className="flex justify-between items-center mb-4">
                       <div className="flex items-center space-x-4">
-                        <span className="text-2xl font-bold text-red-600">₽{movie.rating}</span>
-                        <span className="text-sm text-gray-500">/10</span>
+                        <span className="text-2xl font-bold text-red-600">₽500</span>
+                        <span className="text-sm text-gray-500">билет</span>
                       </div>
                       <div className="flex items-center space-x-2">
+                        <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+                          ⭐ {movie.rating}/10
+                        </span>
                         <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
                           {movie.genre}
                         </span>

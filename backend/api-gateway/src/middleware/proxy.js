@@ -141,7 +141,10 @@ export const healthCheckMiddleware = (req, res, next) => {
   Promise.all(
     services.map(async (service) => {
       try {
-        const response = await fetch(`${service.url}/health`, { timeout: 5000 });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(`${service.url}/health`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         return {
           name: service.name,
           url: service.url,

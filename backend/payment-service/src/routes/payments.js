@@ -84,7 +84,7 @@ router.post('/create', authenticateToken, async (req, res) => {
     // Сохранение платежа в базе данных
     const paymentResult = await query(
       `INSERT INTO payments (user_id, amount, original_amount, commission_amount, currency, status, card_last_four, transaction_id, payment_method, description, seats)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id, transaction_id, status, created_at`,
       [
         userId,
@@ -331,13 +331,13 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     let sql = `
       SELECT 
-        COUNT(*) as totalTransactions,
-        SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) as totalRevenue,
-        SUM(CASE WHEN status = 'completed' THEN original_amount ELSE 0 END) as totalOriginalRevenue,
-        SUM(CASE WHEN status = 'completed' THEN commission_amount ELSE 0 END) as totalCommission,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pendingTransactions,
-        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failedTransactions,
-        AVG(amount) as averageTransactionAmount
+        COUNT(*) as "totaltransactions",
+        SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) as "totalrevenue",
+        SUM(CASE WHEN status = 'completed' THEN original_amount ELSE 0 END) as "totaloriginalrevenue",
+        SUM(CASE WHEN status = 'completed' THEN commission_amount ELSE 0 END) as "totalcommission",
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as "pendingtransactions",
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as "failedtransactions",
+        AVG(amount) as "averagetransactionamount"
       FROM payments
       WHERE 1=1
     `;

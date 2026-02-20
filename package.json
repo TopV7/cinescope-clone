@@ -3,7 +3,7 @@
     "concurrently": "^9.2.1"
   },
   "scripts": {
-    "start:all": "concurrently \"npm run dev --prefix backend/api-gateway\" \"npm run dev --prefix backend/auth-service\" \"npm run dev --prefix backend/movies-service\" \"npm run dev --prefix backend/payment-service\"",
-    "dev": "concurrently \"npm run dev --prefix backend/api-gateway\" \"npm run dev --prefix backend/auth-service\" \"npm run dev --prefix backend/movies-service\" \"npm run dev --prefix backend/payment-service\""
+    "start:all": "concurrently \"npm run dev --prefix backend/api-gateway\" \"npm run dev --prefix backend/auth-service\" \"npm run dev --prefix backend/movies-service\" \"npm run dev --prefix backend/payment-service\" \"npm run dev --prefix frontend\"",
+    "dev": "concurrently \"npm run dev --prefix backend/api-gateway\" \"npm run dev --prefix backend/auth-service\" \"npm run dev --prefix backend/movies-service\" \"npm run dev --prefix backend/payment-service\" \"npm run dev --prefix frontend\""
   }
 }
