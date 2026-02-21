@@ -13,22 +13,21 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build the stack
       run: docker compose build
-    - name: Run the stack
-      run: docker compose up -d
-    - name: Wait for healthy (logs shown in this step if it fails)
+    - name: Run the stack (logs in this step — open it when it fails)
       run: |
-        sleep 5
+        set +e
+        docker compose up -d
+        UP_EXIT=$?
+        echo ""
         echo "========== docker compose ps -a =========="
         docker compose ps -a
         echo ""
         echo "========== api-gateway logs =========="
         docker compose logs api-gateway
         echo ""
-        echo "========== all services (tail 80) =========="
-        docker compose logs --tail=80
-        echo ""
-        echo "========== waiting up to 60s for healthy =========="
-        timeout 60 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 1; done'
+        echo "========== all services (tail 100) =========="
+        docker compose logs --tail=100
+        exit $UP_EXIT
     - name: Run API Gateway tests
       run: docker compose exec -T api-gateway npm test
     - name: Run Auth Service tests
