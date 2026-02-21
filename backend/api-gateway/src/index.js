@@ -20,6 +20,22 @@ import gatewayRoutes from './routes/gateway.js';
 // Загружаем .env ПЕРЕД всеми импортами
 dotenv.config();
 
+// Валидация переменных окружения
+const requiredEnvVars = [
+  'AUTH_SERVICE_URL',
+  'MOVIES_SERVICE_URL', 
+  'PAYMENT_SERVICE_URL',
+  'INTERNAL_JWT_SECRET'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars.join(', '));
+  process.exit(1);
+}
+
+console.log('✅ Environment variables validated successfully');
+
 logger.info('Environment variables loaded', { nodeEnv: process.env.NODE_ENV, port: process.env.PORT });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -226,20 +242,4 @@ app.listen(PORT, () => {
   console.log(`🎬 Movies Service: http://localhost:${PORT}/api/movies/*`);
   console.log(`💳 Payment Service: http://localhost:${PORT}/api/payment/*`);
   console.log(`⏱️  Uptime: ${process.uptime()}s`);
-  
-  // Проверяем доступность микросервисов
-  setTimeout(async () => {
-    try {
-      const healthResponse = await fetch(`http://localhost:${PORT}/health`);
-      const healthData = await healthResponse.json();
-      
-      console.log('\n📊 Services Status:');
-      healthData.services.forEach(service => {
-        const status = service.status === 'healthy' ? '✅' : '❌';
-        console.log(`  ${status} ${service.name}: ${service.status}`);
-      });
-    } catch (error) {
-      console.log('⚠️  Could not check services health');
-    }
-  }, 2000);
 });
