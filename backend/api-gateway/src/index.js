@@ -11,7 +11,7 @@ import { dirname } from 'path';
 import logger from './logger.js';
 
 // Middleware
-import { authProxy, moviesProxy, paymentProxy, healthCheckMiddleware } from './middleware/proxy.js';
+import { authProxy, moviesProxy, paymentProxy } from './middleware/proxy.js';
 import { specs, swaggerMiddleware, swaggerSetup } from './middleware/swagger.js';
 
 // Routes
@@ -136,14 +136,13 @@ app.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
 app.use(express.json({ limit: '10mb' }));
 
 // Gateway routes (API only)
-app.use('/health', healthCheckMiddleware, (req, res) => {
+app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'api-gateway',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    uptime: process.uptime(),
-    services: req.servicesHealth || []
+    uptime: process.uptime()
   });
 });
 
