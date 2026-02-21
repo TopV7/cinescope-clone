@@ -1,7 +1,8 @@
 // API Configuration
-// В Docker используем относительные пути, в разработке - localhost
+// В Docker используем относительные пути для запросов через Nginx
+// В разработке вне Docker используем прямой адрес к API Gateway
 export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8080' : '');
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'http://localhost:8080');
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -17,7 +18,7 @@ export const API_ENDPOINTS = {
   MOVIES: {
     LIST: `${API_BASE_URL}/api/movies`,
     BY_ID: (id: string) => `${API_BASE_URL}/api/movies/${id}`,
-    SEARCH: (query: string) => `${API_BASE_URL}/api/movies/search?q=${encodeURIComponent(query)}`,
+    SEARCH: (query: string) => `${API_BASE_URL}/api/movies/search/query?q=${encodeURIComponent(query)}`,
     GENRES: `${API_BASE_URL}/api/movies/genres`,
     POPULAR: `${API_BASE_URL}/api/movies/popular`,
     HEALTH: `${API_BASE_URL}/api/movies/health`

@@ -5,11 +5,13 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import paymentRoutes from './routes/payments.js';
 
+// Logger
+import logger from './logger.js';
+
 // Загружаем .env ПЕРЕД всеми импортами
 dotenv.config();
 
-// Валидируем переменные окружения
-import './validate-env.js';
+logger.info('Environment variables loaded for payment-service', { nodeEnv: process.env.NODE_ENV, port: process.env.PORT });
 
 import './database.js'; // Инициализация базы данных
 
@@ -27,6 +29,55 @@ app.use(cors({
 }));
 app.use(morgan('combined'));
 app.use(express.json());
+
+// Детальный логгер с Request-ID
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  // Получаем Request-ID от Gateway
+  const requestId = req.headers['x-request-id'] || `payment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Логируем детали запроса
+  console.log(`💳 === PAYMENT SERVICE ЗАПРОС ===`);
+  console.log(`💳 Request-ID: ${requestId}`);
+  console.log(`💳 Метод: ${req.method}`);
+  console.log(`💳 URL: ${req.originalUrl}`);
+  console.log(`💳 Заголовки:`, req.headers);
+  console.log(`💳 Content-Type: ${req.headers['content-type'] || 'не указан'}`);
+  console.log(`💳 Content-Length: ${req.headers['content-length'] || 'не указан'}`);
+  console.log(`💳 User-Agent: ${req.headers['user-agent'] || 'не указан'}`);
+  
+  // Передаем Request-ID в ответ
+  res.setHeader('x-request-id', requestId);
+  
+  // Для POST/PUT запросов логируем тело
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log(`💳 Тело запроса:`, JSON.stringify(req.body, null, 2));
+    
+    // Маскируем чувствительные данные
+    if (req.body && req.body.cardNumber) {
+      const maskedBody = { 
+        ...req.body, 
+        cardNumber: '****-****-****-****',
+        cvv: '***'
+      };
+      console.log(`💳 Тело (маскированное):`, JSON.stringify(maskedBody, null, 2));
+    }
+  }
+  
+  // Логируем ответ
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`💳 === PAYMENT SERVICE ЗАВЕРШЕНО ===`);
+    console.log(`💳 Request-ID: ${requestId}`);
+    console.log(`💳 ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`);
+    console.log(`💳 Content-Type ответа: ${res.getHeader('content-type') || 'не указан'}`);
+    console.log(`💳 Content-Length ответа: ${res.getHeader('content-length') || 'не указан'}`);
+    console.log(`💳 =========================\n`);
+  });
+  
+  next();
+});
 
 // Rate limiting middleware (простая реализация)
 const rateLimit = {};

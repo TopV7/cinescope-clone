@@ -1,0 +1,13 @@
+{
+  "name": "cinescope-integration-tests",
+  "version": "1.0.0",
+  "description": "Интеграционные тесты для CineScope API",
+  "type": "module",
+  "scripts": {
+    "test": "node integration.test.js",
+    "test:watch": "node --watch integration.test.js"
+  },
+  "keywords": ["integration", "test", "api", "gateway"],
+  "author": "CineScope Team",
+  "license": "MIT"
+}

@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 import { query, pool } from '../database.js';
 import { authenticateToken } from '../middleware/auth.js';
 
+// Logger
+import logger from '../logger.js';
+
 const router = express.Router();
 
 // Получаем секретные ключи с проверкой
@@ -23,7 +26,7 @@ if (!JWT_REFRESH_SECRET) {
 }
 
 // Валидация email
-const isValidEmail = (email) => {
+export const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };

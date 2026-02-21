@@ -10,45 +10,50 @@ export const authProxy = createProxyMiddleware({
   pathRewrite: {
     '^/api/auth': '/auth', // /api/auth/login -> /auth/login
   },
+  onProxyReq: (proxyReq, req, res) => {
+    const requestId = req.headers['x-request-id'] || 'unknown';
+    console.log(`🚀 === AUTH PROXY REQUEST ===`);
+    console.log(`🚀 Request-ID: ${requestId}`);
+    console.log(`🚀 Проксируем: ${req.method} ${req.originalUrl} -> ${proxyReq.method} ${proxyReq.path}`);
+    console.log(`🚀 Target: ${process.env.AUTH_SERVICE_URL || 'http://localhost:3001'}`);
+    console.log(`🚀 Headers to Auth Service:`, proxyReq.getHeaders());
+    console.log(`🚀 =========================\n`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    const requestId = req.headers['x-request-id'] || 'unknown';
+    console.log(`🎯 === AUTH PROXY RESPONSE ===`);
+    console.log(`🎯 Request-ID: ${requestId}`);
+    console.log(`🎯 Статус: ${proxyRes.statusCode}`);
+    console.log(`🎯 Headers from Auth Service:`, proxyRes.headers);
+    console.log(`🎯 =========================\n`);
+  },
   onError: (err, req, res) => {
-    console.error('Auth Service Proxy Error:', err.message);
-    console.error('Full error:', err);
+    const requestId = req.headers['x-request-id'] || 'unknown';
+    console.error(`❌ === AUTH PROXY ERROR ===`);
+    console.error(`❌ Request-ID: ${requestId}`);
+    console.error(`❌ Error:`, err.message);
+    console.error(`❌ Full error:`, err);
     if (!res.headersSent) {
       if (err.code === 'ECONNREFUSED') {
         res.status(503).json({
           error: 'Auth Service unavailable',
-          message: 'Authentication service is not running or not reachable'
+          message: 'Authentication service is not running or not reachable',
+          requestId: requestId
         });
       } else if (err.code === 'ETIMEDOUT') {
         res.status(504).json({
           error: 'Auth Service timeout',
-          message: 'Authentication service took too long to respond'
+          message: 'Authentication service request timed out',
+          requestId: requestId
         });
       } else {
         res.status(502).json({
           error: 'Auth Service error',
-          message: 'Authentication service encountered an error'
+          message: 'Authentication service error',
+          requestId: requestId
         });
       }
     }
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`🔄 Proxying to Auth Service: ${req.method} ${req.url}`);
-
-    try {
-      // Добавляем внутренний JWT для межсервисной аутентификации
-      const internalToken = jwt.sign({ service: 'api-gateway' }, process.env.INTERNAL_JWT_SECRET);
-      proxyReq.setHeader('X-Internal-Auth', internalToken);
-    } catch (error) {
-      console.error('❌ JWT signing error:', error);
-    }
-  },
-  
-  onProxyRes: (proxyRes, req, res) => {
-    console.log(`✅ Auth Service Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);
-  },
-  onProxyReqWs: (proxyReq, req, socket, options, head) => {
-    console.log('🔄 Proxying WebSocket to Auth Service');
   }
 });
 

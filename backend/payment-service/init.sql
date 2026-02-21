@@ -31,7 +31,6 @@ CREATE TABLE IF NOT EXISTS refunds (
 
 -- Создаем индексы для производительности
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
-CREATE INDEX IF NOT EXISTS idx_payments_session_id ON payments(session_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_transaction_id ON payments(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at);

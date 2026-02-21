@@ -4,6 +4,32 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Функция валидации данных фильма
+export const validateMovieData = (data) => {
+  const errors = [];
+
+  if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
+    errors.push('Title is required and must be a non-empty string');
+  }
+
+  if (!data.duration || typeof data.duration !== 'number' || data.duration <= 0) {
+    errors.push('Duration is required and must be a positive number');
+  }
+
+  if (!data.genre || typeof data.genre !== 'string' || data.genre.trim().length === 0) {
+    errors.push('Genre is required and must be a non-empty string');
+  }
+
+  if (data.rating !== undefined && (typeof data.rating !== 'number' || data.rating < 0 || data.rating > 10)) {
+    errors.push('Rating must be a number between 0 and 10');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
 // Применяем аутентификацию ко всем маршрутам
 router.use(authenticateToken);
 

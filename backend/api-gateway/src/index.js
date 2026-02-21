@@ -7,6 +7,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
+// Logger
+import logger from './logger.js';
+
 // Middleware
 import { authProxy, moviesProxy, paymentProxy, healthCheckMiddleware } from './middleware/proxy.js';
 import { specs, swaggerMiddleware, swaggerSetup } from './middleware/swagger.js';
@@ -17,8 +20,7 @@ import gatewayRoutes from './routes/gateway.js';
 // Загружаем .env ПЕРЕД всеми импортами
 dotenv.config();
 
-// Валидируем переменные окружения
-import './validate-env.js';
+logger.info('Environment variables loaded', { nodeEnv: process.env.NODE_ENV, port: process.env.PORT });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,80 +29,111 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 // Middleware
-app.use(helmet({
-  contentSecurityPolicy: false, // Отключаем CSP для Swagger UI
-}));
+// app.use(helmet({
+//   contentSecurityPolicy: false, // Отключаем CSP для Swagger UI
+// }));
 
 app.use(cors({
   origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(','),
-  credentials: true,
+  credentials: false, // Временно отключаем для отладки
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(morgan('combined'));
-app.use(express.json());
 
-// Временно отключаем rate limiting для отладки
-// Rate limiting middleware (простая реализация)
-// const rateLimit = {};
-// app.use((req, res, next) => {
-//   try {
-//     const key = req.ip;
-//     const now = Date.now();
-//     const windowMs = 60 * 1000; // 1 минута
-//     const maxRequests = 1000; // Увеличенный лимит для gateway
-
-//     if (!rateLimit[key]) {
-//       rateLimit[key] = { count: 0, resetTime: now + windowMs };
-//     }
-
-//     if (now > rateLimit[key].resetTime) {
-//       rateLimit[key] = { count: 0, resetTime: now + windowMs };
-//     }
-
-//     rateLimit[key].count++;
-
-//     if (rateLimit[key].count > maxRequests) {
-//       console.log(`🚫 Rate limit exceeded for ${key}: ${rateLimit[key].count}/${maxRequests}`);
-//       return res.status(429).json({
-//         error: 'Too many requests',
-//         message: `Rate limit exceeded. Max ${maxRequests} requests per minute.`,
-//         retryAfter: Math.ceil((rateLimit[key].resetTime - now) / 1000)
-//       });
-//     }
-
-//     next();
-//   } catch (error) {
-//     console.error('❌ Rate limiting error:', error);
-//     next();
-//   }
-// });
-
-// Request logging middleware
+// Детальный логгер для отладки проксирования
 app.use((req, res, next) => {
   const start = Date.now();
   
+  // Получаем или генерируем request_id
+  const requestId = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Логируем детали запроса
+  console.log(`🔍 === НОВЫЙ ЗАПРОС ===`);
+  console.log(`🔍 Request-ID: ${requestId}`);
+  console.log(`🔍 Метод: ${req.method}`);
+  console.log(`🔍 URL: ${req.originalUrl}`);
+  console.log(`🔍 Заголовки:`, req.headers);
+  console.log(`🔍 Content-Type: ${req.headers['content-type'] || 'не указан'}`);
+  console.log(`🔍 Content-Length: ${req.headers['content-length'] || 'не указан'}`);
+  console.log(`🔍 User-Agent: ${req.headers['user-agent'] || 'не указан'}`);
+  
+  // Передаем request_id дальше в заголовках
+  req.headers['x-request-id'] = requestId;
+  res.setHeader('x-request-id', requestId);
+  
+  // Для POST/PUT запросов логируем тело
+  if (req.method === 'POST' || req.method === 'PUT') {
+    let bodyData = [];
+    let bodyLength = 0;
+    
+    req.on('data', chunk => {
+      bodyData.push(chunk);
+      bodyLength += chunk.length;
+      console.log(`🔍 Получен chunk: ${chunk.length} байт, всего: ${bodyLength} байт`);
+    });
+    
+    req.on('end', () => {
+      const fullBody = Buffer.concat(bodyData);
+      console.log(`🔍 Полное тело запроса: ${fullBody.length} байт`);
+      
+      // Пытаемся распарсить JSON для логирования
+      if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+        try {
+          const jsonData = JSON.parse(fullBody.toString('utf8'));
+          console.log(`🔍 JSON тело:`, JSON.stringify(jsonData, null, 2));
+          
+          // Маскируем чувствительные данные
+          if (jsonData.password) {
+            jsonData.password = '***MASKED***';
+          }
+          if (jsonData.token) {
+            jsonData.token = '***MASKED***';
+          }
+          console.log(`🔍 Тело (маскированное):`, JSON.stringify(jsonData, null, 2));
+        } catch (e) {
+          console.log(`🔍 Тело (не JSON):`, fullBody.toString('utf8'));
+        }
+      } else {
+        console.log(`🔍 Тело (raw):`, fullBody.toString('utf8'));
+      }
+      
+      console.log(`🔍 === ОТПРАВЛЯЕМ В ПРОКСИ ===`);
+    });
+  } else {
+    console.log(`🔍 === ОТПРАВЛЯЕМ В ПРОКСИ (GET/DELETE) ===`);
+  }
+  
+  // Логируем ответ
   res.on('finish', () => {
     const duration = Date.now() - start;
+    console.log(`📝 === ЗАВЕРШЕНО ===`);
+    console.log(`📝 Request-ID: ${requestId}`);
     console.log(`📝 ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`);
+    console.log(`📝 Content-Type ответа: ${res.getHeader('content-type') || 'не указан'}`);
+    console.log(`📝 Content-Length ответа: ${res.getHeader('content-length') || 'не указан'}`);
+    console.log(`📝 =========================\n`);
   });
   
   next();
 });
 
-// API Routes (BEFORE static files!)
+// СНАЧАЛА проксируем запросы (БЕЗ body parser!)
 app.use('/api/auth', authProxy);
-app.use('/login', authProxy); // Временный роут для совместимости
+// app.use('/login', authProxy); // Отключаем - конфликтует с /api/auth
 app.use('/api/movies', moviesProxy);
 app.use('/api/payment', paymentProxy);
 
 // Static files (AFTER API routes!)
 app.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
-  fallthrough: true,
+  fallthrough: false, // Отключаем, чтобы не перехватывать API запросы
   maxAge: '1d',
   etag: true
 }));
+
+// Body parser только для собственных маршрутов Gateway (В САМОМ КОНЦЕ!)
+app.use(express.json({ limit: '10mb' }));
 
 // Gateway routes (API only)
 app.use('/health', healthCheckMiddleware, (req, res) => {
@@ -121,40 +154,53 @@ if (process.env.SWAGGER_ENABLED !== 'false') {
 }
 
 // Gateway API routes (AFTER API routes!)
-app.use('/', healthCheckMiddleware, gatewayRoutes);
+// app.use('/', healthCheckMiddleware, gatewayRoutes); // ОТКЛЮЧАЕМ!
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('API Gateway Error:', err.stack);
   
+  const requestId = req.headers['x-request-id'] || 'unknown';
+  console.error(`❌ Request-ID: ${requestId}`);
+  console.error(`❌ Error:`, err.message);
+  
   // Если это ошибка прокси
   if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-    return res.status(503).json({
-      error: 'Service unavailable',
-      message: 'One or more microservices are unavailable',
-      timestamp: new Date().toISOString()
-    });
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'API Gateway encountered an error',
+        requestId: requestId
+      });
+    }
   }
-  
-  res.status(500).json({ 
-    error: 'Gateway error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
-    timestamp: new Date().toISOString()
-  });
 });
 
-// 404 handler
+// POST запросы перед fallback
+app.use((req, res, next) => {
+  if (req.method === 'POST') {
+    res.status(405).json({
+      error: 'Method Not Allowed',
+      message: 'POST requests are not allowed here',
+      requestId: req.headers['x-request-id'] || 'unknown'
+    });
+  } else {
+    next();
+  }
+});
+
+// 404 handler (ДОЛЖЕН БЫТЬ ПОСЛЕ ВСЕХ МАРШРУТОВ!)
 app.use((req, res) => {
-  res.status(404).json({ 
+  const requestId = req.headers['x-request-id'] || 'unknown';
+  console.log(`❌ 404 - Request-ID: ${requestId}`);
+  console.log(`❌ 404 - Method: ${req.method}`);
+  console.log(`❌ 404 - URL: ${req.originalUrl}`);
+  
+  res.status(404).json({
     error: 'Not Found',
     message: `Route ${req.originalUrl} not found`,
-    availableEndpoints: [
-      '/health',
-      '/api-docs',
-      '/api/auth/*',
-      '/api/movies/*',
-      '/api/payment/*'
-    ],
+    availableEndpoints: ['/health', '/api-docs', '/api/auth/*', '/api/movies/*', '/api/payment/*'],
+    requestId: requestId,
     timestamp: new Date().toISOString()
   });
 });
