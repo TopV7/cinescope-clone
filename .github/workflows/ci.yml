@@ -15,6 +15,17 @@ jobs:
       run: docker compose build
     - name: Run the stack
       run: docker compose up -d
+    - name: Wait 45s then show api-gateway logs (always, for debugging)
+      run: |
+        sleep 45
+        echo "=== docker compose ps -a ==="
+        docker compose ps -a
+        echo ""
+        echo "=== api-gateway logs ==="
+        docker compose logs api-gateway
+        echo ""
+        echo "=== all services logs (tail 60) ==="
+        docker compose logs --tail=60
     - name: Wait for services to be healthy
       run: |
         timeout 60 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 1; done'
