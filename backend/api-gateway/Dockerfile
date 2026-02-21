@@ -13,8 +13,8 @@ RUN mkdir -p /app/logs
 # Копируем package.json и package-lock.json для воспроизводимой установки
 COPY package.json package-lock.json ./
 
-# Устанавливаем только production-зависимости (включая winston)
-RUN npm ci --omit=dev
+# Устанавливаем все зависимости (prod + dev), чтобы внутри контейнера были jest/supertest для тестов
+RUN npm ci
 
 # Копируем исходный код
 COPY src/ ./src/
