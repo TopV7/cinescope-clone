@@ -15,31 +15,20 @@ jobs:
       run: docker compose build
     - name: Run the stack
       run: docker compose up -d
-    - name: Wait 45s then show api-gateway logs (always, for debugging)
+    - name: Wait for healthy (logs shown in this step if it fails)
       run: |
-        sleep 45
-        echo "=== docker compose ps -a ==="
+        sleep 5
+        echo "========== docker compose ps -a =========="
         docker compose ps -a
         echo ""
-        echo "=== api-gateway logs ==="
+        echo "========== api-gateway logs =========="
         docker compose logs api-gateway
         echo ""
-        echo "=== all services logs (tail 60) ==="
-        docker compose logs --tail=60
-    - name: Wait for services to be healthy
-      run: |
-        timeout 60 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 1; done'
-    - name: Show logs when services are unhealthy
-      if: failure()
-      run: |
-        echo "=== docker compose ps (all) ==="
-        docker compose ps -a
-        echo ""
-        echo "=== api-gateway logs ==="
-        docker compose logs api-gateway
-        echo ""
-        echo "=== last 80 lines of all services ==="
+        echo "========== all services (tail 80) =========="
         docker compose logs --tail=80
+        echo ""
+        echo "========== waiting up to 60s for healthy =========="
+        timeout 60 sh -c 'until docker compose ps | grep -q "healthy"; do sleep 1; done'
     - name: Run API Gateway tests
       run: docker compose exec -T api-gateway npm test
     - name: Run Auth Service tests
