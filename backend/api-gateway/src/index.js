@@ -216,6 +216,8 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
+export default app;
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚪 API Gateway running on port ${PORT}`);
@@ -242,5 +244,3 @@ app.listen(PORT, () => {
     }
   }, 2000);
 });
-
-export default app;

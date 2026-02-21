@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the stack
+      run: docker-compose build
+    - name: Run the stack
+      run: docker-compose up -d
+    - name: Wait for services to be healthy
+      run: |
+        timeout 60 sh -c 'until docker-compose ps | grep -q "healthy"; do sleep 1; done'
+    - name: Run API Gateway tests
+      run: docker-compose exec -T api-gateway npm test
+    - name: Run Auth Service tests
+      run: docker-compose exec -T auth-service npm test
+    - name: Run Movies Service tests
+      run: docker-compose exec -T movies-service npm test
+    - name: Run Payment Service tests
+      run: docker-compose exec -T payment-service npm test
+    - name: Down the stack
+      run: docker-compose down

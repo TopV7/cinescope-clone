@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest",
+    "test": "set NODE_OPTIONS=--experimental-vm-modules && jest",
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration"
   },

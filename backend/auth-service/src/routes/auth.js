@@ -166,8 +166,11 @@ router.post('/login', rateLimitMiddleware, async (req, res) => {
 
   if (!email || !password) {
     console.log('❌ Login failed: Missing email or password');
+    logger.error('Login failed: Missing credentials', { email: email || 'undefined' });
     return res.status(400).json({ error: 'Email and password are required' });
   }
+
+  logger.info('Login attempt', { email });
 
   try {
     console.log('🔍 Looking up user:', email);
@@ -175,6 +178,8 @@ router.post('/login', rateLimitMiddleware, async (req, res) => {
     
     if (result.rows.length === 0) {
       console.log('❌ Login failed: User not found');
+      logger.loginLog(email, false);
+      logger.error('Login failed: User not found', { email });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -185,6 +190,8 @@ router.post('/login', rateLimitMiddleware, async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       console.log('❌ Login failed: Invalid password');
+      logger.loginLog(email, false);
+      logger.error('Login failed: Invalid password', { email, userId: user.id });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -204,6 +211,7 @@ router.post('/login', rateLimitMiddleware, async (req, res) => {
     );
 
     console.log('✅ Login successful:', { userId: user.id, email: user.email, name: user.name });
+    logger.loginLog(email, true);
     res.json({
       message: 'Login successful',
       token: accessToken, // Изменяем accessToken на token
@@ -218,6 +226,7 @@ router.post('/login', rateLimitMiddleware, async (req, res) => {
   } catch (error) {
     console.error('❌ Login error:', error.message);
     console.error('❌ Stack trace:', error.stack);
+    logger.error('Login error', { email, error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Server error' });
   }
 });

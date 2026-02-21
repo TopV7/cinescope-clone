@@ -1,7 +1,19 @@
 import request from 'supertest';
 import app from '../../src/index.js';
 
+global.fetch = jest.fn();
+
 describe('Health Endpoint Integration Tests', () => {
+  beforeAll(() => {
+    global.fetch.mockImplementation((url) => {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ status: 'OK', service: 'mock-service' }),
+        headers: new Map([['x-response-time', '100ms']])
+      });
+    });
+  });
+
   it('should return health status with 200', async () => {
     const response = await request(app)
       .get('/health')

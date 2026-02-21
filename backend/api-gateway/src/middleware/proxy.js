@@ -8,7 +8,7 @@ export const authProxy = createProxyMiddleware({
   timeout: 30000,
   proxyTimeout: 30000,
   pathRewrite: {
-    '^/api/auth': '/auth', // /api/auth/login -> /auth/login
+    '^/api/auth': '', // /api/auth/login -> /login
   },
   onProxyReq: (proxyReq, req, res) => {
     const requestId = req.headers['x-request-id'] || 'unknown';

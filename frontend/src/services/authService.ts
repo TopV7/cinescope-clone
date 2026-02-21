@@ -29,6 +29,7 @@ export interface AuthResponse {
 export const authService = {
   // Login user
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
+    console.log('Frontend: Starting login', { email: credentials.email });
     try {
       const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
@@ -38,9 +39,12 @@ export const authService = {
         body: JSON.stringify(credentials),
       });
 
+      console.log('Frontend: Login request sent', { url: API_ENDPOINTS.AUTH.LOGIN, status: response.status });
       const data = await response.json();
+      console.log('Frontend: Login response received', { status: response.status, success: !!data.token, error: data.error });
 
       if (!response.ok) {
+        console.error('Frontend: Login failed', { status: response.status, error: data.error });
         return {
           success: false,
           error: data.error || 'Login failed',
@@ -51,6 +55,7 @@ export const authService = {
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        console.log('Frontend: Login successful, token saved');
       }
 
       return {
@@ -58,6 +63,7 @@ export const authService = {
         data: data,
       };
     } catch (error) {
+      console.error('Frontend: Login network error', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -67,6 +73,7 @@ export const authService = {
 
   // Register user
   async register(userData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
+    console.log('Frontend: Starting registration', { email: userData.email, name: userData.name });
     try {
       const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
         method: 'POST',
@@ -76,9 +83,12 @@ export const authService = {
         body: JSON.stringify(userData),
       });
 
+      console.log('Frontend: Registration request sent', { url: API_ENDPOINTS.AUTH.REGISTER, status: response.status });
       const data = await response.json();
+      console.log('Frontend: Registration response received', { status: response.status, success: !!data.token, error: data.error });
 
       if (!response.ok) {
+        console.error('Frontend: Registration failed', { status: response.status, error: data.error });
         return {
           success: false,
           error: data.error || 'Registration failed',
@@ -89,6 +99,7 @@ export const authService = {
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        console.log('Frontend: Registration successful, token saved');
       }
 
       return {
@@ -96,6 +107,7 @@ export const authService = {
         data: data,
       };
     } catch (error) {
+      console.error('Frontend: Registration network error', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -105,14 +117,18 @@ export const authService = {
 
   // Get user profile
   async getProfile(): Promise<ApiResponse<User>> {
+    console.log('Frontend: Starting get profile');
     try {
       const response = await fetch(API_ENDPOINTS.AUTH.PROFILE, {
         headers: getAuthHeaders(),
       });
 
+      console.log('Frontend: Get profile request sent', { url: API_ENDPOINTS.AUTH.PROFILE, status: response.status });
       const data = await response.json();
+      console.log('Frontend: Get profile response received', { status: response.status, hasUser: !!data.user });
 
       if (!response.ok) {
+        console.error('Frontend: Get profile failed', { status: response.status, error: data.error });
         return {
           success: false,
           error: data.error || 'Failed to get profile',
@@ -124,6 +140,7 @@ export const authService = {
         data: data.user || data,
       };
     } catch (error) {
+      console.error('Frontend: Get profile network error', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',

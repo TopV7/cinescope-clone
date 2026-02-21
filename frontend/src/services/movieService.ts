@@ -39,6 +39,7 @@ export interface MovieSearchParams {
 export const movieService = {
   // Create new movie
   async createMovie(movieData: CreateMovieRequest): Promise<Movie> {
+    console.log('Frontend: Starting movie creation', { movieData });
     try {
       const response = await fetch(API_ENDPOINTS.MOVIES.LIST, {
         method: 'POST',
@@ -46,20 +47,24 @@ export const movieService = {
         body: JSON.stringify(movieData),
       });
 
+      console.log('Frontend: Movie creation request sent', { url: API_ENDPOINTS.MOVIES.LIST, status: response.status });
       const data = await response.json();
+      console.log('Frontend: Movie creation response received', { data });
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create movie');
       }
 
+      console.log('Frontend: Movie created successfully', { movie: data.movie });
       return data.movie;
     } catch (error) {
-      console.error('Error creating movie:', error);
+      console.error('Frontend: Error creating movie:', error);
       throw error;
     }
   },
   // Get all movies with pagination
   async getMovies(params: MovieSearchParams = {}): Promise<PaginatedResponse<Movie>> {
+    console.log('Frontend: Starting movies fetch', { params });
     try {
       const searchParams = new URLSearchParams();
       
@@ -73,17 +78,20 @@ export const movieService = {
         ? API_ENDPOINTS.MOVIES.SEARCH(params.search)
         : `${API_ENDPOINTS.MOVIES.LIST}?${searchParams.toString()}`;
 
+      console.log('Frontend: Movies fetch URL', { url });
       const response = await fetch(url, {
         headers: getAuthHeaders(),
       });
 
+      console.log('Frontend: Movies fetch request sent', { url, status: response.status });
       const data = await response.json();
+      console.log('Frontend: Movies fetch response received', { data });
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch movies');
       }
 
-      return {
+      const result = {
         data: data.movies || data.data || [],
         pagination: data.pagination || {
           page: params.page || 1,
@@ -92,8 +100,11 @@ export const movieService = {
           pages: Math.ceil((data.total || 0) / (params.limit || 10)),
         },
       };
+
+      console.log('Frontend: Movies fetched successfully', { count: result.data.length, pagination: result.pagination });
+      return result;
     } catch (error) {
-      console.error('Error fetching movies:', error);
+      console.error('Frontend: Error fetching movies:', error);
       return {
         data: [],
         pagination: {

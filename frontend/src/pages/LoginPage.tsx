@@ -25,11 +25,13 @@ const LoginPage: React.FC = () => {
     
     if (!formData.email || !formData.password) {
       setError('Email и пароль обязательны');
+      console.log('Frontend: Login validation failed', { email: formData.email, hasPassword: !!formData.password });
       return;
     }
 
     setLoading(true);
     setError(null);
+    console.log('Frontend: Starting login', { email: formData.email, remember: formData.remember });
 
     try {
       const response = await authService.login({
@@ -37,16 +39,22 @@ const LoginPage: React.FC = () => {
         password: formData.password
       });
 
+      console.log('Frontend: Login response received', { success: response.success, hasToken: !!response.data?.token });
+
       if (response.success) {
+        console.log('Frontend: Login successful, redirecting to movies');
         // Перенаправляем на страницу фильмов
         navigate('/movies');
       } else {
+        console.log('Frontend: Login failed', { error: response.error });
         setError(response.error || 'Ошибка входа');
       }
     } catch (err) {
+      console.error('Frontend: Login error:', err);
       setError(err instanceof Error ? err.message : 'Произошла ошибка');
     } finally {
       setLoading(false);
+      console.log('Frontend: Login process completed');
     }
   };
   return (

@@ -12,6 +12,11 @@ describe('healthCheckMiddleware', () => {
     res = {};
     next = jest.fn();
     jest.clearAllMocks();
+    global.fetch.mockClear();
+    global.fetch.mockResolvedValue({
+      ok: true,
+      headers: new Map([['x-response-time', '100ms']])
+    });
   });
 
   afterEach(() => {
