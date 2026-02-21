@@ -141,17 +141,7 @@ app.use('/api/auth', authProxy);
 app.use('/api/movies', moviesProxy);
 app.use('/api/payment', paymentProxy);
 
-// Static files (AFTER API routes!)
-app.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
-  fallthrough: false, // Отключаем, чтобы не перехватывать API запросы
-  maxAge: '1d',
-  etag: true
-}));
-
-// Body parser только для собственных маршрутов Gateway (В САМОМ КОНЦЕ!)
-app.use(express.json({ limit: '10mb' }));
-
-// Gateway routes (API only)
+// Health — ДО express.static, иначе при fallthrough: false /health отдаёт 404 и контейнер unhealthy
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -161,6 +151,16 @@ app.get('/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// Static files (AFTER API routes!)
+app.use(express.static(path.join(__dirname, '../../../frontend/dist'), {
+  fallthrough: false, // Отключаем, чтобы не перехватывать API запросы
+  maxAge: '1d',
+  etag: true
+}));
+
+// Body parser только для собственных маршрутов Gateway (В САМОМ КОНЦЕ!)
+app.use(express.json({ limit: '10mb' }));
 
 // Swagger documentation (если включен)
 if (process.env.SWAGGER_ENABLED !== 'false') {
