@@ -10,11 +10,11 @@ WORKDIR /app
 # Создаем директорию для логов
 RUN mkdir -p /app/logs
 
-# Копируем package.json
-COPY package.json ./
+# Копируем package.json и package-lock.json для воспроизводимой установки
+COPY package.json package-lock.json ./
 
-# Устанавливаем зависимости
-RUN npm install --omit=dev
+# Устанавливаем только production-зависимости (включая winston)
+RUN npm ci --omit=dev
 
 # Копируем исходный код
 COPY src/ ./src/
