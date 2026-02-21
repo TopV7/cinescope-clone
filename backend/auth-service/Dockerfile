@@ -16,9 +16,6 @@ RUN npm install --omit=dev
 # Копируем исходный код
 COPY src/ ./src/
 
-# Копируем .env файл
-COPY .env ./.env
-
 # Создаем директорию для данных
 RUN mkdir -p /app/data
 
