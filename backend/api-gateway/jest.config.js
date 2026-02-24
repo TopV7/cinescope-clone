@@ -1,6 +1,7 @@
 export default {
-  preset: null,
+  preset: 'babel-jest',
   testEnvironment: 'node',
+  extensionsToTreatAsEsm: ['.js'],
   globals: {
     'ts-jest': {
       useESM: true,
@@ -9,7 +10,9 @@ export default {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  transform: {},
+  transform: {
+    '^.+\\.js$': 'babel-jest'
+  },
   transformIgnorePatterns: [
     'node_modules/(?!(supertest)/)'
   ],
