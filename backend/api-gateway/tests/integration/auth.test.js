@@ -1,5 +1,5 @@
-const request = require('supertest');
-const app = require('../../src/index').default;
+import request from 'supertest';
+import app from '../../src/index.js';
 
 describe('Auth Integration Tests', () => {
   it('should login successfully with browser-like headers', async () => {
