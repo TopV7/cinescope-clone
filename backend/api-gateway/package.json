@@ -33,7 +33,6 @@
     "supertest": "^6.3.3"
   },
   "jest": {
-    "testEnvironment": "node",
-    "extensionsToTreatAsEsm": [".js"]
+    "testEnvironment": "node"
   }
 }
