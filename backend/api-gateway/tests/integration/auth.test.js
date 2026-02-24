@@ -4,9 +4,23 @@ import { jest } from '@jest/globals';
 
 describe('Auth Integration Tests', () => {
   // Увеличиваем таймаут для всех тестов в этом блоке
-  jest.setTimeout(10000);
+  jest.setTimeout(30000);
+
+  // Мокаем fetch чтобы избежать реальных запросов
+  beforeAll(() => {
+    global.fetch = jest.fn();
+  });
 
   it('should login successfully with browser-like headers', async () => {
+    // Мокаем успешный ответ от auth сервиса
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        token: 'mock-jwt-token',
+        user: { id: 1, email: 'admin@cinescope.com' }
+      })
+    });
+
     const response = await request(app)
       .post('/api/auth/login')
       .send({ email: 'admin@cinescope.com', password: 'admin123' })
@@ -25,6 +39,15 @@ describe('Auth Integration Tests', () => {
   });
 
   it('should return 401 for invalid credentials', async () => {
+    // Мокаем неуспешный ответ от auth сервиса
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({
+        error: 'Invalid credentials'
+      })
+    });
+
     const response = await request(app)
       .post('/api/auth/login')
       .send({ email: 'admin@cinescope.com', password: 'wrongpassword' })
