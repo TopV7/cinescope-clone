@@ -10,6 +10,9 @@ export default {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {},
+  transformIgnorePatterns: [
+    'node_modules/(?!(supertest)/)'
+  ],
   testMatch: [
     '<rootDir>/tests/**/*.test.js'
   ],
