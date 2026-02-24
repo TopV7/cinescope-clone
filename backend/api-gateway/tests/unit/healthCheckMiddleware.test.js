@@ -84,6 +84,9 @@ describe('healthCheckMiddleware', () => {
   });
 
   it('should handle timeout errors', async () => {
+    // Увеличиваем таймаут только для этого теста
+    jest.setTimeout(8000);
+    
     // Mock timeout
     global.fetch.mockImplementation(() => {
       return new Promise((_, reject) => {

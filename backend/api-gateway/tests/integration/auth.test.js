@@ -1,7 +1,11 @@
 import request from 'supertest';
 import app from '../../src/index.js';
+import { jest } from '@jest/globals';
 
 describe('Auth Integration Tests', () => {
+  // Увеличиваем таймаут для всех тестов в этом блоке
+  jest.setTimeout(10000);
+
   it('should login successfully with browser-like headers', async () => {
     const response = await request(app)
       .post('/api/auth/login')

@@ -1,5 +1,6 @@
 import request from 'supertest';
 import app from '../../src/index.js';
+import { jest } from '@jest/globals';
 
 global.fetch = jest.fn();
 
