@@ -58,6 +58,10 @@ app.use(cors({
 
 app.use(morgan('combined'));
 
+// ВАЖНО: Добавляем body parser ДО логирования чтобы тело было доступно для прокси
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
 // Детальный логгер для отладки проксирования
 app.use((req, res, next) => {
   const start = Date.now();
@@ -79,44 +83,19 @@ app.use((req, res, next) => {
   req.headers['x-request-id'] = requestId;
   res.setHeader('x-request-id', requestId);
   
-  // Для POST/PUT запросов логируем тело
-  if (req.method === 'POST' || req.method === 'PUT') {
-    let bodyData = [];
-    let bodyLength = 0;
+  // Для POST/PUT запросов логируем уже распарсенное тело
+  if ((req.method === 'POST' || req.method === 'PUT') && req.body) {
+    console.log(`🔍 JSON тело:`, JSON.stringify(req.body, null, 2));
     
-    req.on('data', chunk => {
-      bodyData.push(chunk);
-      bodyLength += chunk.length;
-      console.log(`🔍 Получен chunk: ${chunk.length} байт, всего: ${bodyLength} байт`);
-    });
-    
-    req.on('end', () => {
-      const fullBody = Buffer.concat(bodyData);
-      console.log(`🔍 Полное тело запроса: ${fullBody.length} байт`);
-      
-      // Пытаемся распарсить JSON для логирования
-      if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
-        try {
-          const jsonData = JSON.parse(fullBody.toString('utf8'));
-          console.log(`🔍 JSON тело:`, JSON.stringify(jsonData, null, 2));
-          
-          // Маскируем чувствительные данные
-          if (jsonData.password) {
-            jsonData.password = '***MASKED***';
-          }
-          if (jsonData.token) {
-            jsonData.token = '***MASKED***';
-          }
-          console.log(`🔍 Тело (маскированное):`, JSON.stringify(jsonData, null, 2));
-        } catch (e) {
-          console.log(`🔍 Тело (не JSON):`, fullBody.toString('utf8'));
-        }
-      } else {
-        console.log(`🔍 Тело (raw):`, fullBody.toString('utf8'));
-      }
-      
-      console.log(`🔍 === ОТПРАВЛЯЕМ В ПРОКСИ ===`);
-    });
+    // Маскируем чувствительные данные  
+    if (req.body.password) {
+      const maskedBody = { ...req.body, password: '***MASKED***' };
+      console.log(`🔍 Тело (маскированное):`, JSON.stringify(maskedBody, null, 2));
+    }
+    console.log(`🔍 === ОТПРАВЛЯЕМ В ПРОКСИ ===`);
+  } else if (req.method === 'POST' || req.method === 'PUT') {
+    console.log(`🔍 Тело пусто или не распарсено`);
+    console.log(`🔍 === ОТПРАВЛЯЕМ В ПРОКСИ ===`);
   } else {
     console.log(`🔍 === ОТПРАВЛЯЕМ В ПРОКСИ (GET/DELETE) ===`);
   }
@@ -135,7 +114,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// СНАЧАЛА проксируем запросы (БЕЗ body parser!)
+// Проксируем запросы на микросервисы
+// Body parser ДО этого момента гарантирует наличие данных в req.body
 app.use('/api/auth', authProxy);
 // app.use('/login', authProxy); // Отключаем - конфликтует с /api/auth
 app.use('/api/movies', moviesProxy);

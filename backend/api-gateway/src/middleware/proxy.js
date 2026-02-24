@@ -33,7 +33,7 @@ const authProxyBase = createProxyMiddleware({
   timeout: 60000,
   proxyTimeout: 60000,
   pathRewrite: {
-    '^/api/auth': '', // /api/auth/login -> /login
+    '^/api': '', // /api/auth/login -> /auth/login
   },
   onProxyReq: (proxyReq, req, res) => {
     const requestId = req.headers['x-request-id'] || 'unknown';
@@ -42,6 +42,11 @@ const authProxyBase = createProxyMiddleware({
     console.log(`🚀 Проксируем: ${req.method} ${req.originalUrl} -> ${proxyReq.method} ${proxyReq.path}`);
     console.log(`🚀 Target: ${process.env.AUTH_SERVICE_URL || 'http://localhost:3001'}`);
     console.log(`🚀 Headers to Auth Service:`, proxyReq.getHeaders());
+    
+    // Если есть тело запроса, логируем его
+    if (req.body) {
+      console.log(`🚀 Request body to Auth Service:`, JSON.stringify(req.body, null, 2));
+    }
     console.log(`🚀 =========================\n`);
   },
   onProxyRes: (proxyRes, req, res) => {
@@ -57,13 +62,17 @@ const authProxyBase = createProxyMiddleware({
     console.error(`❌ === AUTH PROXY ERROR ===`);
     console.error(`❌ Request-ID: ${requestId}`);
     console.error(`❌ Error:`, err.message);
+    console.error(`❌ Error Code:`, err.code);
+    console.error(`❌ Error Errno:`, err.errno);
     console.error(`❌ Full error:`, err);
+    console.error(`❌ Target: ${process.env.AUTH_SERVICE_URL || 'http://localhost:3001'}`);
     if (!res.headersSent) {
       if (err.code === 'ECONNREFUSED') {
         res.status(503).json({
           error: 'Auth Service unavailable',
           message: 'Authentication service is not running or not reachable',
-          requestId: requestId
+          requestId: requestId,
+          target: process.env.AUTH_SERVICE_URL
         });
       } else if (err.code === 'ETIMEDOUT') {
         res.status(504).json({
@@ -75,7 +84,8 @@ const authProxyBase = createProxyMiddleware({
         res.status(502).json({
           error: 'Auth Service error',
           message: 'Authentication service error',
-          requestId: requestId
+          requestId: requestId,
+          errorCode: err.code
         });
       }
     }
