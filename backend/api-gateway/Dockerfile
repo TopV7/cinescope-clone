@@ -19,6 +19,9 @@ RUN npm ci
 # Копируем исходный код
 COPY src/ ./src/
 
+# Копируем тесты
+COPY tests/ ./tests/
+
 # Открываем порт
 EXPOSE 8080
 
