@@ -1,29 +1,9 @@
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import jwt from 'jsonwebtoken';
 
-// Функция для создания retry middleware
-const createRetryMiddleware = (originalMiddleware, maxRetries = 3) => {
-  return (req, res, next) => {
-    let attempts = 0;
-    
-    const tryRequest = () => {
-      attempts++;
-      const nextProxy = () => {
-        originalMiddleware(req, res, (err) => {
-          if (err && attempts < maxRetries && (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT')) {
-            console.log(`⚠️  Retry attempt ${attempts}/${maxRetries} for ${req.method} ${req.url}`);
-            // Добавляем задержку перед повторной попыткой
-            setTimeout(tryRequest, 1000);
-          } else {
-            next(err);
-          }
-        });
-      };
-      nextProxy();
-    };
-    
-    tryRequest();
-  };
+// Функция для создания retry middleware - отключено для упрощения отладки
+const createRetryMiddleware = (originalMiddleware) => {
+  return originalMiddleware;
 };
 
 // Конфигурация прокси для микросервисов
@@ -41,6 +21,11 @@ const authProxyBase = createProxyMiddleware({
     console.log(`🚀 Request-ID: ${requestId}`);
     console.log(`🚀 Проксируем: ${req.method} ${req.originalUrl} -> ${proxyReq.method} ${proxyReq.path}`);
     console.log(`🚀 Target: ${process.env.AUTH_SERVICE_URL || 'http://localhost:3001'}`);
+    
+    // Добавляем внутренний JWT для межсервисной аутентификации
+    const internalToken = jwt.sign({ service: 'api-gateway' }, process.env.INTERNAL_JWT_SECRET);
+    proxyReq.setHeader('X-Internal-Auth', internalToken);
+    
     console.log(`🚀 Headers to Auth Service:`, proxyReq.getHeaders());
     
     // Если есть тело запроса, логируем его

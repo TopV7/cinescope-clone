@@ -24,5 +24,6 @@ export default {
     'src/**/*.js',
     '!src/index.js',
     '!src/logger.js'
-  ]
+  ],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js']
 };
