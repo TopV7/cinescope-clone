@@ -10,14 +10,11 @@ WORKDIR /app
 # Копируем package.json
 COPY package.json ./
 
-# Устанавливаем зависимости
-RUN npm install --omit=dev
+# Устанавливаем все зависимости (включая jest для тестов)
+RUN npm install
 
 # Копируем исходный код
 COPY src/ ./src/
-
-# Создаем директорию для данных
-RUN mkdir -p /app/data
 
 # Открываем порт
 EXPOSE 3001

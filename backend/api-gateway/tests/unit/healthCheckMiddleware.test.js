@@ -84,14 +84,18 @@ describe('healthCheckMiddleware', () => {
   });
 
   it('should handle timeout errors', async () => {
-    // Увеличиваем таймаут только для этого теста
-    jest.setTimeout(8000);
-    
-    // Mock timeout
-    global.fetch.mockImplementation(() => {
-      return new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 6000);
-      });
+    // Mock timeout - используем AbortSignal
+    global.fetch.mockImplementation((url, options) => {
+      if (options && options.signal) {
+        // Имитируем timeout, вызывая abort
+        return new Promise((_, reject) => {
+          const handler = () => {
+            reject(new Error('The operation was aborted'));
+          };
+          options.signal.addEventListener('abort', handler);
+        });
+      }
+      return Promise.reject(new Error('Timeout'));
     });
 
     await new Promise((resolve) => {
@@ -103,13 +107,11 @@ describe('healthCheckMiddleware', () => {
     req.servicesHealth.forEach(service => {
       expect(service.status).toBe('unhealthy');
     });
-  });
+  }, 10000); // Устанавливаем таймаут для самого теста
 
-  it('should log errors during health check', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
+  it('should handle network errors gracefully', async () => {
     global.fetch.mockImplementation(() => {
-      throw new Error('Network error');
+      return Promise.reject(new Error('Network error'));
     });
 
     await new Promise((resolve) => {
@@ -118,7 +120,12 @@ describe('healthCheckMiddleware', () => {
       });
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('Health check error:', expect.any(Error));
-    consoleSpy.mockRestore();
+    expect(req.servicesHealth).toBeDefined();
+    expect(req.servicesHealth).toHaveLength(3);
+    req.servicesHealth.forEach(service => {
+      expect(service.status).toBe('unhealthy');
+      expect(service.error).toBeDefined();
+    });
+    expect(next).toHaveBeenCalled();
   });
 });

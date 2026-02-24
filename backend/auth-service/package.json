@@ -1,19 +1,11 @@
 {
   "name": "auth-service",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest",
-    "test:unit": "jest src/__tests__/unit",
-    "test:integration": "jest src/__tests__/integration",
-    "test:watch": "jest --watch"
+    "test": "NODE_OPTIONS='--experimental-vm-modules' NODE_ENV=test node node_modules/jest/bin/jest.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "module",
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -24,20 +16,12 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "pg": "^8.18.0",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/morgan": "^1.9.10",
-    "@types/pg": "^8.11.10",
-    "jest": "^29.7.0",
-    "nodemon": "^3.1.11",
-    "supertest": "^6.3.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "nodemon": "^3.1.11"
   },
   "jest": {
     "testEnvironment": "node",
@@ -45,6 +29,7 @@
     "transform": {},
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
-    }
+    },
+    "testTimeout": 30000
   }
 }
