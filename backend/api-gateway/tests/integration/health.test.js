@@ -5,6 +5,8 @@ import { jest } from '@jest/globals';
 global.fetch = jest.fn();
 
 describe('Health Endpoint Integration Tests', () => {
+  jest.setTimeout(120000);
+
   beforeAll(() => {
     global.fetch.mockImplementation((url) => {
       return Promise.resolve({

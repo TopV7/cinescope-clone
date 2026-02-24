@@ -1,12 +1,37 @@
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import jwt from 'jsonwebtoken';
 
+// Функция для создания retry middleware
+const createRetryMiddleware = (originalMiddleware, maxRetries = 3) => {
+  return (req, res, next) => {
+    let attempts = 0;
+    
+    const tryRequest = () => {
+      attempts++;
+      const nextProxy = () => {
+        originalMiddleware(req, res, (err) => {
+          if (err && attempts < maxRetries && (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT')) {
+            console.log(`⚠️  Retry attempt ${attempts}/${maxRetries} for ${req.method} ${req.url}`);
+            // Добавляем задержку перед повторной попыткой
+            setTimeout(tryRequest, 1000);
+          } else {
+            next(err);
+          }
+        });
+      };
+      nextProxy();
+    };
+    
+    tryRequest();
+  };
+};
+
 // Конфигурация прокси для микросервисов
-export const authProxy = createProxyMiddleware({
+const authProxyBase = createProxyMiddleware({
   target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
   changeOrigin: true,
-  timeout: 30000,
-  proxyTimeout: 30000,
+  timeout: 60000,
+  proxyTimeout: 60000,
   pathRewrite: {
     '^/api/auth': '', // /api/auth/login -> /login
   },
@@ -57,11 +82,13 @@ export const authProxy = createProxyMiddleware({
   }
 });
 
-export const moviesProxy = createProxyMiddleware({
+export const authProxy = createRetryMiddleware(authProxyBase);
+
+const moviesProxyBase = createProxyMiddleware({
   target: process.env.MOVIES_SERVICE_URL || 'http://localhost:3002',
   changeOrigin: true,
-  timeout: 30000,
-  proxyTimeout: 30000,
+  timeout: 60000,
+  proxyTimeout: 60000,
   pathRewrite: {
     '^/api/movies': '/', // Отрезаем всё и оставляем только корень
   },
@@ -98,11 +125,13 @@ export const moviesProxy = createProxyMiddleware({
   }
 });
 
-export const paymentProxy = createProxyMiddleware({
+export const moviesProxy = createRetryMiddleware(moviesProxyBase);
+
+const paymentProxyBase = createProxyMiddleware({
   target: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3003',
   changeOrigin: true,
-  timeout: 30000,
-  proxyTimeout: 30000,
+  timeout: 60000,
+  proxyTimeout: 60000,
   pathRewrite: {
     '^/api/payment': '/payment', // /api/payment/process -> /payment/process
   },
@@ -138,6 +167,8 @@ export const paymentProxy = createProxyMiddleware({
     console.log(`✅ Payment Service Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);
   }
 });
+
+export const paymentProxy = createRetryMiddleware(paymentProxyBase);
 
 // Middleware для проверки здоровья микросервисов
 export const healthCheckMiddleware = (req, res, next) => {

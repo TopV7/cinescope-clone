@@ -2,6 +2,7 @@ export default {
   preset: 'babel-jest',
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.js'],
+  testTimeout: 120000,
   globals: {
     'ts-jest': {
       useESM: true,

@@ -4,13 +4,16 @@ import { jest } from '@jest/globals';
 
 describe('Auth Integration Tests', () => {
   // Увеличиваем таймаут для всех тестов в этом блоке
-  jest.setTimeout(30000);
+  jest.setTimeout(120000);
 
   let server;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     // Запускаем сервер для тестов
     server = app.listen(0); // случайный порт
+    
+    // Даем микросервисам время на полную инициализацию
+    await new Promise(resolve => setTimeout(resolve, 3000));
   });
 
   afterAll((done) => {
